@@ -1,0 +1,330 @@
+// =============================================================================
+// The globe: canvas, control bar, timeline and the marker tooltip.
+//
+// The canvas fills its container and is never given an intrinsic size in CSS —
+// the renderer sizes the drawing buffer itself from the element's client box
+// and the device pixel ratio.
+// =============================================================================
+
+.mtl-globe {
+  background:
+    radial-gradient(
+      ellipse at 50% 40%,
+      color-mix(in srgb, var(--mtl-space) 70%, #101a30) 0%,
+      var(--mtl-space) 45%,
+      var(--mtl-space-far) 100%
+    );
+  block-size: 100%;
+  inline-size: 100%;
+  overflow: hidden;
+  position: relative;
+  // Vertical panning is handled by the renderer; letting the page scroll at the
+  // same time makes the globe feel like it is slipping.
+  touch-action: none;
+  user-select: none;
+}
+
+.mtl-globe__canvas {
+  block-size: 100%;
+  display: block;
+  inline-size: 100%;
+  // While a drag is in progress the cursor is swapped to `grabbing` from
+  // script, which is the only reliable way to keep it during pointer capture.
+  cursor: grab;
+
+  &.is-dragging {
+    cursor: grabbing;
+  }
+}
+
+.mtl-globe__loading {
+  align-items: center;
+  color: #fff;
+  display: flex;
+  gap: var(--mtl-space-3);
+  inset: 0;
+  justify-content: center;
+  position: absolute;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Control bar
+//
+// Bottom-centred so it stays under the thumb on a phone and out of the way of
+// the sphere on a desktop.
+// -----------------------------------------------------------------------------
+
+.mtl-globe__controls {
+  align-items: center;
+  backdrop-filter: blur(10px);
+  background: rgb(10 14 24 / 72%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: var(--mtl-radius-pill);
+  bottom: calc(var(--mtl-space-4) + env(safe-area-inset-bottom));
+  color: #fff;
+  display: flex;
+  gap: var(--mtl-space-1);
+  left: 50%;
+  padding: var(--mtl-space-1);
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: var(--mtl-z-overlay);
+}
+
+.mtl-globe__button {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--mtl-radius-pill);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-block-size: var(--mtl-touch);
+  min-inline-size: var(--mtl-touch);
+  padding: 0 var(--mtl-space-3);
+  transition: background var(--mtl-transition);
+
+  &:hover,
+  &:focus-visible {
+    background: rgb(255 255 255 / 16%);
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--mtl-accent);
+    color: var(--mtl-accent-contrast);
+  }
+
+  svg {
+    block-size: 1.25rem;
+    inline-size: 1.25rem;
+    fill: currentcolor;
+  }
+}
+
+.mtl-globe__separator {
+  align-self: center;
+  background: rgb(255 255 255 / 20%);
+  block-size: 1.5rem;
+  inline-size: 1px;
+  margin-inline: var(--mtl-space-1);
+}
+
+// -----------------------------------------------------------------------------
+// Time scrubber — the fourth dimension.
+// -----------------------------------------------------------------------------
+
+.mtl-globe__timeline {
+  backdrop-filter: blur(10px);
+  background: rgb(10 14 24 / 72%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: var(--mtl-radius-lg);
+  bottom: calc(var(--mtl-space-4) + var(--mtl-touch) + var(--mtl-space-3) + env(safe-area-inset-bottom));
+  color: #fff;
+  left: 50%;
+  padding: var(--mtl-space-3) var(--mtl-space-4);
+  position: absolute;
+  transform: translateX(-50%);
+  inline-size: min(44rem, calc(100vw - 2 * var(--mtl-space-4)));
+  z-index: var(--mtl-z-overlay);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.mtl-globe__timeline-head {
+  align-items: baseline;
+  display: flex;
+  gap: var(--mtl-space-3);
+  margin-block-end: var(--mtl-space-2);
+}
+
+.mtl-globe__timeline-date {
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+}
+
+.mtl-globe__timeline-range {
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  inline-size: 100%;
+
+  &::-webkit-slider-runnable-track {
+    background: rgb(255 255 255 / 25%);
+    block-size: 4px;
+    border-radius: 2px;
+  }
+
+  &::-moz-range-track {
+    background: rgb(255 255 255 / 25%);
+    block-size: 4px;
+    border-radius: 2px;
+  }
+
+  // A generous thumb: this control is dragged with a thumb on a phone and with
+  // a laser pointer in a headset.
+  &::-webkit-slider-thumb {
+    appearance: none;
+    background: #fff;
+    block-size: 1.25rem;
+    border: 0;
+    border-radius: 50%;
+    inline-size: 1.25rem;
+    margin-block-start: -0.5rem;
+  }
+
+  &::-moz-range-thumb {
+    background: #fff;
+    block-size: 1.25rem;
+    border: 0;
+    border-radius: 50%;
+    inline-size: 1.25rem;
+  }
+}
+
+// Tick marks showing where trips sit on the timeline.
+.mtl-globe__timeline-ticks {
+  block-size: 0.5rem;
+  margin-block-start: var(--mtl-space-1);
+  position: relative;
+}
+
+.mtl-globe__timeline-tick {
+  background: currentcolor;
+  block-size: 100%;
+  inline-size: 2px;
+  opacity: 0.5;
+  position: absolute;
+  inset-block-start: 0;
+}
+
+// -----------------------------------------------------------------------------
+// Layer picker — the fifth dimension.
+// -----------------------------------------------------------------------------
+
+.mtl-globe__layers {
+  backdrop-filter: blur(10px);
+  background: rgb(10 14 24 / 72%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: var(--mtl-radius-lg);
+  color: #fff;
+  inset-block-start: calc(var(--mtl-header-height) + var(--mtl-space-3));
+  inset-inline-end: var(--mtl-space-3);
+  max-inline-size: 15rem;
+  padding: var(--mtl-space-3);
+  position: absolute;
+  z-index: var(--mtl-z-overlay);
+
+  &[hidden] {
+    display: none;
+  }
+
+  label {
+    align-items: center;
+    display: flex;
+    gap: var(--mtl-space-2);
+    min-block-size: var(--mtl-touch);
+  }
+}
+
+.mtl-globe__legend {
+  display: flex;
+  gap: var(--mtl-space-2);
+  margin-block-start: var(--mtl-space-2);
+}
+
+.mtl-globe__legend-swatch {
+  block-size: 0.75rem;
+  border-radius: 2px;
+  flex: 1;
+}
+
+// -----------------------------------------------------------------------------
+// Marker tooltip / step preview card
+// -----------------------------------------------------------------------------
+
+.mtl-globe__tooltip {
+  background: var(--mtl-surface-raised);
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius-lg);
+  box-shadow: var(--mtl-shadow-lifted);
+  max-inline-size: 20rem;
+  overflow: hidden;
+  position: absolute;
+  // Positioned from script; the transform keeps it above the marker it points
+  // at rather than covering it.
+  transform: translate(-50%, calc(-100% - 1rem));
+  z-index: var(--mtl-z-overlay);
+
+  &[hidden] {
+    display: none;
+  }
+
+  img {
+    aspect-ratio: 16 / 9;
+    display: block;
+    inline-size: 100%;
+    object-fit: cover;
+  }
+}
+
+.mtl-globe__tooltip-body {
+  padding: var(--mtl-space-3);
+
+  h3 {
+    font-size: 1rem;
+    margin: 0 0 var(--mtl-space-1);
+  }
+
+  p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Fallback list, rendered server-side and shown when WebGL is unavailable.
+// Search engines read this too, so the globe never hides the content.
+// -----------------------------------------------------------------------------
+
+.mtl-globe__fallback {
+  background: var(--mtl-surface);
+  color: initial;
+  inset: 0;
+  overflow-y: auto;
+  padding: var(--mtl-space-6) var(--mtl-space-4);
+  position: absolute;
+
+  .mtl-globe.is-supported & {
+    display: none;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Small screens: the timeline and layer panel collapse into a sheet so they do
+// not cover the sphere.
+// -----------------------------------------------------------------------------
+
+@media (max-width: 40rem) {
+  .mtl-globe__layers {
+    inset-block-start: auto;
+    inset-block-end: calc(var(--mtl-space-4) + var(--mtl-touch) + var(--mtl-space-3) + env(safe-area-inset-bottom));
+    inset-inline: var(--mtl-space-3);
+    max-inline-size: none;
+  }
+
+  .mtl-globe__controls {
+    inline-size: calc(100vw - 2 * var(--mtl-space-3));
+    justify-content: space-around;
+  }
+
+  .mtl-globe__button span {
+    display: none;
+  }
+}

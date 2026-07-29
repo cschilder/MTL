@@ -1,0 +1,333 @@
+// =============================================================================
+// Management environment: dashboard tiles, data tables, forms and the media
+// picker dialog.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Dashboard
+// -----------------------------------------------------------------------------
+
+.mtl-stats {
+  display: grid;
+  gap: var(--mtl-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.mtl-stat {
+  background: var(--mtl-surface-raised);
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius-lg);
+  padding: var(--mtl-space-4);
+
+  dt {
+    color: color-mix(in srgb, currentcolor 65%, transparent);
+    font-size: 0.8125rem;
+  }
+
+  dd {
+    font-size: 1.75rem;
+    font-weight: 300;
+    line-height: 1.2;
+    margin: var(--mtl-space-1) 0 0;
+    // Aligns the digits so a column of figures does not shimmer as it updates.
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Data tables
+//
+// Below the breakpoint each row becomes a stacked card, using the column name
+// from the data-label attribute. That is the only way a seven-column media
+// table is usable on a phone.
+// -----------------------------------------------------------------------------
+
+.mtl-table-wrap {
+  overflow-x: auto;
+}
+
+.mtl-table {
+  inline-size: 100%;
+
+  th {
+    white-space: nowrap;
+  }
+
+  td {
+    vertical-align: middle;
+  }
+
+  .mtl-table__thumb {
+    aspect-ratio: 1;
+    border-radius: var(--mtl-radius);
+    inline-size: 2.5rem;
+    object-fit: cover;
+  }
+
+  .mtl-table__actions {
+    display: flex;
+    gap: var(--mtl-space-1);
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 45rem) {
+  .mtl-table--stack {
+    thead {
+      // Not display:none — that would drop the headers from the accessibility
+      // tree along with the visual layout.
+      block-size: 1px;
+      clip-path: inset(50%);
+      inline-size: 1px;
+      overflow: hidden;
+      position: absolute;
+    }
+
+    tr {
+      border: 1px solid var(--mtl-border);
+      border-radius: var(--mtl-radius);
+      display: block;
+      margin-block-end: var(--mtl-space-3);
+      padding: var(--mtl-space-3);
+    }
+
+    td {
+      border: 0;
+      display: grid;
+      gap: var(--mtl-space-3);
+      grid-template-columns: 8rem minmax(0, 1fr);
+      padding: var(--mtl-space-1) 0;
+
+      &::before {
+        color: color-mix(in srgb, currentcolor 65%, transparent);
+        content: attr(data-label);
+        font-size: 0.8125rem;
+      }
+    }
+
+    .mtl-table__actions {
+      justify-content: flex-start;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Forms
+// -----------------------------------------------------------------------------
+
+.mtl-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mtl-space-5);
+  max-inline-size: 46rem;
+}
+
+// A two-column form area that collapses on narrow screens.
+.mtl-form__row {
+  display: grid;
+  gap: var(--mtl-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.mtl-form__section {
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius-lg);
+  padding: var(--mtl-space-4);
+
+  > legend,
+  > h2 {
+    font-size: 1rem;
+    font-weight: 550;
+    margin: 0 0 var(--mtl-space-3);
+    padding-inline: var(--mtl-space-1);
+  }
+}
+
+// The wide editing screens put the report on the left and the metadata on the
+// right, and stack them below the breakpoint.
+.mtl-editor-layout {
+  display: grid;
+  gap: var(--mtl-space-5);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 68rem) {
+  .mtl-editor-layout {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) 21rem;
+  }
+
+  .mtl-editor-layout__side {
+    position: sticky;
+    inset-block-start: calc(var(--mtl-header-height) + var(--mtl-space-4));
+  }
+}
+
+// A form action bar pinned to the bottom of the viewport while editing, so
+// Save is always one tap away in a long form.
+.mtl-form-bar {
+  align-items: center;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--mtl-surface) 90%, transparent);
+  border-block-start: 1px solid var(--mtl-border);
+  display: flex;
+  gap: var(--mtl-space-3);
+  inset-block-end: 0;
+  inset-inline: 0;
+  padding: var(--mtl-space-3) var(--mtl-space-4);
+  padding-block-end: calc(var(--mtl-space-3) + env(safe-area-inset-bottom));
+  position: sticky;
+  z-index: var(--mtl-z-sticky);
+
+  .mtl-form-bar__status {
+    color: color-mix(in srgb, currentcolor 65%, transparent);
+    font-size: 0.875rem;
+    margin-inline-start: auto;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Sortable lists (step order, gallery order)
+// -----------------------------------------------------------------------------
+
+.mtl-sortable {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mtl-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mtl-sortable__item {
+  align-items: center;
+  background: var(--mtl-surface-raised);
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius);
+  display: flex;
+  gap: var(--mtl-space-3);
+  padding: var(--mtl-space-2) var(--mtl-space-3);
+
+  &.is-dragging {
+    opacity: 0.5;
+  }
+
+  &.is-drop-target {
+    border-color: var(--mtl-accent);
+    box-shadow: inset 0 2px 0 var(--mtl-accent);
+  }
+}
+
+.mtl-sortable__handle {
+  background: none;
+  border: 0;
+  color: color-mix(in srgb, currentcolor 55%, transparent);
+  cursor: grab;
+  min-block-size: var(--mtl-touch);
+  min-inline-size: 2rem;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// Keyboard reordering: the buttons that move an item up or down are always
+// present, not only on hover, because a hover-only control is unreachable by
+// touch and by a headset pointer.
+.mtl-sortable__move {
+  display: flex;
+  flex-direction: column;
+}
+
+// -----------------------------------------------------------------------------
+// Media picker dialog
+// -----------------------------------------------------------------------------
+
+.mtl-picker {
+  background: var(--mtl-surface);
+  border: 0;
+  border-radius: var(--mtl-radius-lg);
+  box-shadow: var(--mtl-shadow-lifted);
+  max-block-size: 90dvh;
+  max-inline-size: min(64rem, 94vw);
+  padding: 0;
+  inline-size: 100%;
+
+  &::backdrop {
+    background: rgb(0 0 0 / 55%);
+  }
+}
+
+.mtl-picker__head,
+.mtl-picker__foot {
+  align-items: center;
+  display: flex;
+  gap: var(--mtl-space-3);
+  padding: var(--mtl-space-3) var(--mtl-space-4);
+}
+
+.mtl-picker__head {
+  border-block-end: 1px solid var(--mtl-border);
+}
+
+.mtl-picker__foot {
+  border-block-start: 1px solid var(--mtl-border);
+}
+
+.mtl-picker__body {
+  max-block-size: 60dvh;
+  overflow-y: auto;
+  padding: var(--mtl-space-4);
+}
+
+// -----------------------------------------------------------------------------
+// Status labels
+// -----------------------------------------------------------------------------
+
+.mtl-status {
+  border-radius: var(--mtl-radius-pill);
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+
+  &--published,
+  &--active {
+    background: color-mix(in srgb, #0e8420 20%, transparent);
+    color: #0a6b1a;
+  }
+
+  &--draft,
+  &--invited {
+    background: color-mix(in srgb, #f99b11 25%, transparent);
+    color: #8a5300;
+  }
+
+  &--archived,
+  &--disabled {
+    background: color-mix(in srgb, currentcolor 12%, transparent);
+  }
+
+  &--private {
+    background: color-mix(in srgb, #c7162b 18%, transparent);
+    color: #a5162b;
+  }
+}
+
+.is-dark {
+  .mtl-status--published,
+  .mtl-status--active {
+    color: #6ed07f;
+  }
+
+  .mtl-status--draft,
+  .mtl-status--invited {
+    color: #f7b45c;
+  }
+
+  .mtl-status--private {
+    color: #f08a95;
+  }
+}

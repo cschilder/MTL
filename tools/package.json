@@ -1,0 +1,18 @@
+{
+  "name": "mtl-build-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build tooling for MTL. Only needed on a development machine - Strato serves the compiled output that is committed to the repository.",
+  "scripts": {
+    "css": "sass --load-path=node_modules --style=compressed --no-source-map scss/mtl.scss ../assets/css/mtl.css",
+    "css:watch": "sass --load-path=node_modules --no-source-map --watch scss/mtl.scss ../assets/css/mtl.css",
+    "globe": "node build/build-globe-geometry.mjs",
+    "build": "npm run css && npm run globe"
+  },
+  "devDependencies": {
+    "sass": "^1.94.2",
+    "vanilla-framework": "^4.55.1",
+    "world-atlas": "^2.0.2",
+    "topojson-client": "^3.1.0"
+  }
+}

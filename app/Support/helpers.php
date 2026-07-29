@@ -195,6 +195,35 @@ if (!function_exists('method_field')) {
     }
 }
 
+if (!function_exists('icon')) {
+    /**
+     * Inline SVG icon. Returns already-escaped markup, so it is echoed
+     * directly rather than passed through e().
+     *
+     * @param array<string,string> $attributes
+     */
+    function icon(string $name, int $size = 20, array $attributes = []): string
+    {
+        return MTL\Support\Icons::svg($name, $size, $attributes);
+    }
+}
+
+if (!function_exists('nonce')) {
+    /** The per-request CSP nonce for the one inline bootstrap script. */
+    function nonce(): string
+    {
+        return MTL\Http\Middleware\SecurityHeadersMiddleware::nonce();
+    }
+}
+
+if (!function_exists('setting')) {
+    /** A site setting managed from the admin environment. */
+    function setting(string $key, mixed $default = null): mixed
+    {
+        return MTL\Services\SettingsService::get($key, $default);
+    }
+}
+
 if (!function_exists('route')) {
     /**
      * URL for a named route, e.g. route('trips.show', ['trip' => $slug]).

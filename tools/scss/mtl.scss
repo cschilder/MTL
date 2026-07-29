@@ -1,0 +1,233 @@
+// =============================================================================
+// MTL stylesheet source.
+//
+// Compiled to assets/css/mtl.css by `npm run css` (see tools/package.json).
+// The compiled file is committed, because Strato has no build step: what is in
+// the repository is what gets uploaded.
+//
+// Layering, in order:
+//   1. Vanilla Framework settings overrides   (this file, top)
+//   2. Vanilla Framework itself
+//   3. Self-hosted fonts
+//   4. MTL's own components
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// 1. Settings
+// -----------------------------------------------------------------------------
+
+// Vanilla emits @font-face rules pointing at assets.ubuntu.com whenever the
+// base family mentions "Ubuntu". MTL self-hosts its fonts instead — the site
+// has to work offline in the Android wrapper, and the content security policy
+// only allows same-origin fonts — so the family is named differently here and
+// the faces are declared below.
+$font-base-family: '"MTL Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+$font-monospace: '"MTL Mono", "Ubuntu Mono", "SFMono-Regular", Menlo, Consolas, monospace';
+
+// Brand colours. Green reads as "outdoors" without tipping into the saturated
+// look of a mapping app, and it stays legible on both themes.
+$color-brand: #0f7d5c;
+$color-accent: #0f7d5c;
+$color-link: #0b6b4f;
+$color-link-dark: #4fd1a5;
+$color-accent-dark: #4fd1a5;
+
+// Slightly tighter than Vanilla's default so a long travel report does not run
+// to an uncomfortable line length on a wide screen.
+$grid-max-width: 72rem;
+
+// Vanilla's Suru decorations reference images on assets.ubuntu.com. MTL does
+// not use them and does not include them below, but the variable is pointed at
+// the local vendor directory so no build can accidentally emit a cross-origin
+// URL that the content security policy would then block.
+$assets-path: '/assets/vendor/vanilla/';
+
+@import 'vanilla-framework/scss/vanilla';
+
+// -----------------------------------------------------------------------------
+// A targeted Vanilla build rather than `@include vanilla`.
+//
+// The full framework is roughly 600 KB before compression, most of it patterns
+// and the complete icon set that MTL never renders. Including only what is used
+// cuts that by about three quarters, which matters on a phone on mobile data
+// and inside the offline cache the Android wrapper ships.
+//
+// Adding a pattern later is a one-line change here followed by `npm run css`.
+// -----------------------------------------------------------------------------
+
+// Reset, typography, themes, form and table element styling.
+@include vf-base;
+
+// Structure
+@include vf-p-grid;
+@include vf-p-strip;
+@include vf-p-section;
+@include vf-p-divider;
+@include vf-p-rule;
+@include vf-p-separator;
+
+// Typography helpers
+@include vf-p-headings;
+@include vf-p-heading-icon;
+@include vf-p-muted-heading;
+@include vf-p-links;
+@include vf-p-lists;
+@include vf-p-list;
+@include vf-p-inline-list;
+@include vf-p-code-snippet;
+@include vf-p-image;
+@include vf-p-media-object;
+
+// Controls
+@include vf-p-buttons;
+@include vf-p-forms;
+@include vf-p-form-help-text;
+@include vf-p-form-validation;
+@include vf-p-form-tick-elements;
+@include vf-p-form-password-toggle;
+@include vf-p-search-box;
+@include vf-p-switch;
+@include vf-p-segmented-control;
+@include vf-p-slider;
+@include vf-p-chip;
+
+// Navigation and structure
+@include vf-p-navigation;
+@include vf-p-side-navigation;
+@include vf-p-breadcrumbs;
+@include vf-p-pagination;
+@include vf-p-tabs;
+@include vf-p-contextual-menu;
+@include vf-p-accordion;
+
+// Feedback
+@include vf-p-notification;
+@include vf-p-modal;
+@include vf-p-tooltips;
+@include vf-p-status-label;
+@include vf-p-badge;
+
+// Content containers
+@include vf-p-card;
+@include vf-p-table-sortable;
+@include vf-p-table-mobile-card;
+
+// Icons: the shared machinery plus the specific glyphs MTL renders. The full
+// set is several hundred rules of base64 SVG.
+@include vf-p-icons-common;
+@include vf-p-icon-chevron;
+@include vf-p-icon-close;
+@include vf-p-icon-menu;
+@include vf-p-icon-plus;
+@include vf-p-icon-minus;
+@include vf-p-icon-delete;
+@include vf-p-icon-edit;
+@include vf-p-icon-search;
+@include vf-p-icon-settings;
+@include vf-p-icon-user;
+@include vf-p-icon-profile;
+@include vf-p-icon-upload;
+@include vf-p-icon-image;
+@include vf-p-icon-video-play;
+@include vf-p-icon-external-link;
+@include vf-p-icon-copy-to-clipboard;
+@include vf-p-icon-drag;
+@include vf-p-icon-error;
+@include vf-p-icon-warning;
+@include vf-p-icon-success;
+@include vf-p-icon-info;
+@include vf-p-icon-spinner;
+@include vf-p-icon-share;
+@include vf-p-icon-tag;
+@include vf-p-icon-location;
+@include vf-p-icon-help;
+@include vf-p-icon-show;
+@include vf-p-icon-hide;
+@include vf-p-icon-expand;
+@include vf-p-icon-collapse;
+@include vf-p-icon-home;
+@include vf-p-icon-play;
+@include vf-p-icon-pause;
+@include vf-p-icon-fullscreen;
+@include vf-p-icon-rss;
+@include vf-p-icon-lock-locked;
+@include vf-p-icon-log-out;
+@include vf-p-icon-filter;
+@include vf-p-icon-folder;
+@include vf-p-icon-file;
+@include vf-p-icon-starred;
+@include vf-p-icon-unstarred;
+@include vf-p-icon-arrow-left;
+@include vf-p-icon-arrow-right;
+@include vf-p-icon-arrow-up;
+@include vf-p-icon-arrow-down;
+@include vf-p-icon-back-to-top;
+@include vf-p-icon-sort-up;
+@include vf-p-icon-sort-down;
+@include vf-p-icon-sort-both;
+
+// Utilities
+@include vf-u-hide;
+@include vf-u-show;
+@include vf-u-align;
+@include vf-u-truncate;
+@include vf-u-text-muted;
+@include vf-u-text-max-width;
+@include vf-u-no-print;
+@include vf-u-off-screen;
+@include vf-u-embedded-media;
+@include vf-u-vertical-spacing;
+@include vf-u-margin-collapse;
+@include vf-u-padding-collapse;
+@include vf-u-has-icon;
+@include vf-u-clearfix;
+@include vf-u-animations;
+@include vf-u-equal-height;
+@include vf-u-image-position;
+
+// -----------------------------------------------------------------------------
+// 2. Self-hosted typefaces
+//
+// Ubuntu's variable fonts, served from assets/vendor/vanilla/fonts. Only the
+// Latin subsets are shipped; Cyrillic and Greek would triple the payload for
+// place names that the fallback stack renders acceptably anyway.
+// -----------------------------------------------------------------------------
+
+@font-face {
+  font-display: swap;
+  font-family: 'MTL Sans';
+  font-stretch: 100%;
+  font-style: normal;
+  font-weight: 100 800;
+  src: url('../vendor/vanilla/fonts/ubuntu-variable-latin.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'MTL Sans';
+  font-stretch: 100%;
+  font-style: italic;
+  font-weight: 100 800;
+  src: url('../vendor/vanilla/fonts/ubuntu-variable-italic-latin.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'MTL Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  src: url('../vendor/vanilla/fonts/ubuntu-mono-variable-latin.woff2') format('woff2-variations');
+}
+
+// -----------------------------------------------------------------------------
+// 3. MTL components
+// -----------------------------------------------------------------------------
+
+@import 'mtl/tokens';
+@import 'mtl/layout';
+@import 'mtl/globe';
+@import 'mtl/editor';
+@import 'mtl/media';
+@import 'mtl/content';
+@import 'mtl/admin';
+@import 'mtl/immersive';

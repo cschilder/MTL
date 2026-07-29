@@ -1,0 +1,260 @@
+// =============================================================================
+// The travel-report editor.
+//
+// Two panes over the same document: a rich contenteditable surface and a plain
+// markdown textarea. Only one is visible at a time and they share the toolbar,
+// so the styling has to make them look like one control that changed mode.
+// =============================================================================
+
+.mtl-editor {
+  background: var(--mtl-surface);
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius);
+  display: flex;
+  flex-direction: column;
+  // Contains the sticky toolbar and clips the rounded corners of the panes.
+  overflow: hidden;
+
+  &:focus-within {
+    border-color: var(--mtl-accent);
+    box-shadow: 0 0 0 1px var(--mtl-accent);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Toolbar
+// -----------------------------------------------------------------------------
+
+.mtl-editor__toolbar {
+  align-items: center;
+  background: var(--mtl-surface-sunken);
+  border-block-end: 1px solid var(--mtl-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: var(--mtl-space-1);
+  position: sticky;
+  inset-block-start: var(--mtl-header-height);
+  z-index: var(--mtl-z-sticky);
+}
+
+.mtl-editor__tool {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--mtl-radius);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-block-size: 2rem;
+  min-inline-size: 2rem;
+  padding: 0 var(--mtl-space-1);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, currentcolor 10%, transparent);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+
+  // Reflects the formatting under the caret, the way Slack's toolbar does.
+  &[aria-pressed='true'] {
+    background: color-mix(in srgb, var(--mtl-accent) 18%, transparent);
+    color: var(--mtl-accent);
+  }
+
+  svg {
+    block-size: 1.125rem;
+    fill: currentcolor;
+    inline-size: 1.125rem;
+    pointer-events: none;
+  }
+}
+
+.mtl-editor__tool-group {
+  display: flex;
+  gap: 2px;
+
+  & + & {
+    border-inline-start: 1px solid var(--mtl-border);
+    margin-inline-start: var(--mtl-space-1);
+    padding-inline-start: var(--mtl-space-1);
+  }
+}
+
+// A touch pointer cannot hit a 2rem button reliably, and a headset pointer
+// certainly cannot.
+@media (pointer: coarse) {
+  .mtl-editor__tool {
+    min-block-size: var(--mtl-touch);
+    min-inline-size: var(--mtl-touch);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Writing surfaces
+// -----------------------------------------------------------------------------
+
+.mtl-editor__surface {
+  // Tall enough to write a real report in without the page scrolling away
+  // under the toolbar, but still resizable.
+  min-block-size: 24rem;
+  outline: 0;
+  overflow-y: auto;
+  padding: var(--mtl-space-5);
+  resize: vertical;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &:empty::before {
+    color: color-mix(in srgb, currentcolor 50%, transparent);
+    content: attr(data-placeholder);
+    pointer-events: none;
+  }
+}
+
+.mtl-editor__source {
+  background: var(--mtl-surface);
+  border: 0;
+  color: inherit;
+  font-family: $font-monospace;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  min-block-size: 24rem;
+  outline: 0;
+  padding: var(--mtl-space-5);
+  resize: vertical;
+  tab-size: 2;
+  inline-size: 100%;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.mtl-editor__preview {
+  border-block-start: 1px solid var(--mtl-border);
+  padding: var(--mtl-space-5);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Status strip
+// -----------------------------------------------------------------------------
+
+.mtl-editor__status {
+  align-items: center;
+  border-block-start: 1px solid var(--mtl-border);
+  color: color-mix(in srgb, currentcolor 65%, transparent);
+  display: flex;
+  font-size: 0.8125rem;
+  gap: var(--mtl-space-4);
+  padding: var(--mtl-space-2) var(--mtl-space-3);
+}
+
+.mtl-editor__status-dot {
+  block-size: 0.5rem;
+  border-radius: 50%;
+  display: inline-block;
+  inline-size: 0.5rem;
+  margin-inline-end: var(--mtl-space-1);
+
+  &.is-saved {
+    background: #0e8420;
+  }
+
+  &.is-dirty {
+    background: #f99b11;
+  }
+
+  &.is-error {
+    background: #c7162b;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Slash-command and mention menu
+// -----------------------------------------------------------------------------
+
+.mtl-editor__menu {
+  background: var(--mtl-surface-raised);
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius);
+  box-shadow: var(--mtl-shadow-lifted);
+  max-block-size: 18rem;
+  min-inline-size: 16rem;
+  overflow-y: auto;
+  padding: var(--mtl-space-1);
+  position: absolute;
+  z-index: var(--mtl-z-modal);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.mtl-editor__menu-item {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--mtl-radius);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  gap: var(--mtl-space-3);
+  min-block-size: var(--mtl-touch);
+  padding-inline: var(--mtl-space-2);
+  text-align: start;
+  inline-size: 100%;
+
+  &:hover,
+  &[aria-selected='true'] {
+    background: color-mix(in srgb, var(--mtl-accent) 16%, transparent);
+  }
+
+  small {
+    color: color-mix(in srgb, currentcolor 60%, transparent);
+    margin-inline-start: auto;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Inline media inside the rich surface
+// -----------------------------------------------------------------------------
+
+.mtl-editor__surface {
+  figure {
+    margin-block: var(--mtl-space-4);
+  }
+
+  img {
+    border-radius: var(--mtl-radius);
+    max-inline-size: 100%;
+  }
+
+  // The node the caret is inside gets a subtle outline so it is clear what a
+  // toolbar action will apply to.
+  [data-selected='true'] {
+    outline: 2px solid var(--mtl-accent);
+    outline-offset: 2px;
+  }
+}
+
+// While a file is dragged over the editor.
+.mtl-editor.is-dropping {
+  border-color: var(--mtl-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mtl-accent) 30%, transparent);
+
+  .mtl-editor__surface,
+  .mtl-editor__source {
+    background: color-mix(in srgb, var(--mtl-accent) 6%, transparent);
+  }
+}
