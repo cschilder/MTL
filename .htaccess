@@ -1,0 +1,93 @@
+# =============================================================================
+# MTL - Apache configuration for Strato "Hosting Advanced" (Apache + mod_rewrite)
+#
+# This file assumes the repository root is also the document root, which is how
+# Strato serves an FTP account. Everything that is not a real file on disk is
+# routed through index.php.
+# =============================================================================
+
+# -- Default documents --------------------------------------------------------
+DirectoryIndex index.php index.html
+
+# -- Never list a directory ---------------------------------------------------
+Options -Indexes +FollowSymLinks
+
+# -- Block access to application internals ------------------------------------
+# storage/, config/ and app/ each carry their own deny rule as well, so a host
+# that ignores this block still refuses to hand out source or uploads.
+RedirectMatch 404 (?i)/\.(git|env|htaccess|htpasswd|user\.ini)
+RedirectMatch 404 (?i)^/(app|config|db|bin|tests|tools|android|docs)(/|$)
+RedirectMatch 404 (?i)^/storage/(?!media/public/)
+RedirectMatch 404 (?i)\.(md|json|lock|sql|dist|example|log|bak|sh)$
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS. Strato terminates TLS in front of Apache, so trust the
+    # X-Forwarded-Proto header when present and fall back to %{HTTPS}.
+    RewriteCond %{HTTP:X-Forwarded-Proto} =http [OR]
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} !^localhost [NC]
+    RewriteCond %{HTTP_HOST} !^127\. [NC]
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+    # Strip a trailing slash from non-directory URLs so /trips/ and /trips are
+    # the same resource for caches and for the router.
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.+)/$ /$1 [R=301,L]
+
+    # Pass the Authorization header through to PHP (CGI/FastCGI drops it).
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Front controller: anything that is not an existing file or directory.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# -- Security headers ---------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Permissions-Policy "geolocation=(self), camera=(), microphone=(), xr-spatial-tracking=(self)"
+
+    # HSTS. Only meaningful once the certificate for mtl.r010.space is live.
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+
+    # Fingerprinted assets under /assets/ never change contents for a given URL.
+    <FilesMatch "\.(css|js|woff2?|png|jpe?g|webp|avif|svg|glb|bin)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # The service worker and manifest must always be revalidated, otherwise a
+    # stale worker keeps serving an old shell forever.
+    <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+# -- Compression --------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+    AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE application/xml image/svg+xml
+    AddOutputFilterByType DEFLATE application/manifest+json
+</IfModule>
+
+# -- MIME types that older Apache builds do not know --------------------------
+<IfModule mod_mime.c>
+    AddType application/manifest+json      .webmanifest
+    AddType application/wasm               .wasm
+    AddType image/avif                     .avif
+    AddType video/mp4                      .mp4 .m4v
+    AddType video/webm                     .webm
+    AddType video/quicktime                .mov
+    AddType font/woff2                     .woff2
+</IfModule>
+
+# -- Error documents ----------------------------------------------------------
+ErrorDocument 404 /index.php
+ErrorDocument 403 /index.php
