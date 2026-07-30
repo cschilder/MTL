@@ -12,8 +12,15 @@
   border-radius: var(--mtl-radius);
   display: flex;
   flex-direction: column;
-  // Contains the sticky toolbar and clips the rounded corners of the panes.
-  overflow: hidden;
+
+  // `clip`, not `hidden`. Both trim the panes to the rounded corners, but
+  // `hidden` makes this element a scroll container — and a scroll container is
+  // what a sticky descendant sticks to. The toolbar was therefore sticking to
+  // the top of the editor instead of to the page, and since the editor itself
+  // never scrolls, it sat permanently 3.5rem down its own box, covering the
+  // first line of the report. `clip` does not create a scroll container, so the
+  // toolbar sticks to the viewport below the site header, as intended.
+  overflow: clip;
 
   &:focus-within {
     border-color: var(--mtl-accent);
@@ -68,9 +75,15 @@
 
   svg {
     block-size: 1.125rem;
-    fill: currentcolor;
     inline-size: 1.125rem;
     pointer-events: none;
+
+    // No `fill` here. The icons are stroked outlines that carry their own
+    // fill="none", and a CSS declaration beats a presentation attribute — so
+    // setting fill: currentcolor painted every closed shape solid, turning the
+    // table, image, code-block and preview icons into black squares. The stroke
+    // colour is what has to follow the text.
+    stroke: currentcolor;
   }
 }
 
@@ -115,6 +128,55 @@
     color: color-mix(in srgb, currentcolor 50%, transparent);
     content: attr(data-placeholder);
     pointer-events: none;
+  }
+
+  // The first block's top margin and padding are not honoured against the
+  // scroll container's padding edge, so a report that opens with a heading had
+  // its first line clipped behind the toolbar.
+  > :first-child {
+    margin-block-start: 0;
+    padding-block-start: 0;
+  }
+
+  // Vanilla's type scale gives several heading levels the same size — h1 and h2
+  // both 2.5rem, h3 and h4 both 1.5rem — which is fine on a page that uses two
+  // or three of them, but in the editor the level *is* the information: an author
+  // has to be able to see whether a line is `##` or `###`. Six distinct steps.
+  h1 { font-size: 1.875rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.0625rem; }
+  h5 { font-size: 0.9375rem; }
+  h6 { font-size: 0.875rem; }
+
+  :is(h1, h2, h3, h4, h5, h6) {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-block: var(--mtl-space-4) var(--mtl-space-2);
+  }
+
+  // h5 and h6 are smaller than the body text, so they need something other than
+  // size to read as headings.
+  :is(h5, h6) {
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+}
+
+// Vanilla pulls a heading that directly follows another heading up by -1.5rem, to
+// set a title and its subtitle as one unit. In a document being edited, `#`
+// followed by `##` are two independent headings, and overlapping them made the
+// text unreadable while writing.
+//
+// The class is repeated deliberately. Vanilla's selector is
+// `h1:not(.u-no-margin):not(.u-no-margin--bottom) + h2` — two classes and two
+// elements — and a single `.mtl-editor__surface` ancestor does not reach that.
+// Two occurrences match it, and this stylesheet is imported after Vanilla, so the
+// tie falls this way.
+.mtl-editor__surface.mtl-editor__surface {
+  :is(h1, h2, h3, h4, h5, h6) + :is(h1, h2, h3, h4, h5, h6) {
+    margin-block-start: var(--mtl-space-4);
+    padding-block-start: 0;
   }
 }
 

@@ -40,13 +40,13 @@ body {
   inset-block-start: 0;
   z-index: var(--mtl-z-header);
 
-  // The globe is the whole page on the home route; the header floats over it.
-  .mtl-shell--immersive & {
+  // On the globe page the header floats over the sphere. Keyed off a class on
+  // <body>, not off the shell: the header is the shell's sibling, so a
+  // descendant selector would never match it.
+  .mtl-page--immersive & {
     background: color-mix(in srgb, var(--mtl-space) 70%, transparent);
     border-block-end-color: rgb(255 255 255 / 12%);
     color: #fff;
-    position: fixed;
-    inset-inline: 0;
   }
 }
 
@@ -125,9 +125,13 @@ body {
   min-block-size: 0;
 }
 
-// Full-bleed: the globe takes the whole viewport below the header.
+// Full-bleed: the globe takes whatever is left below the header.
+//
+// No explicit height. The header is sticky and still occupies space, so
+// `100dvh` would overflow by its height, and subtracting the custom property
+// is off by the header's border. Letting flex distribute the space is exact by
+// construction.
 .mtl-shell--immersive {
-  block-size: 100dvh;
   overflow: hidden;
   position: relative;
 }

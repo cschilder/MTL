@@ -10,45 +10,98 @@ defined('MTL_APP') || exit;
  * Cache-busting URLs for static files.
  *
  * .htaccess marks everything under assets/ as immutable for a year, so the URL
- * has to change when the file does. A short content hash in the query string
- * does that without renaming files, which keeps FTP deployment simple.
+ * has to change when the file does.
+ *
+ * The version goes in a **path segment**, not a query string:
+ *
+ *     /assets/v1a2b3c4d/js/app.js
+ *
+ * and .htaccess rewrites that segment away again. The reason is that two kinds
+ * of reference are resolved by the browser relative to the file that contains
+ * them, and neither passes through this class:
+ *
+ *   * `import './serializer.js'` inside a JavaScript module, and
+ *   * `url(../vendor/…/ubuntu.woff2)` inside a stylesheet.
+ *
+ * With a query string those sub-resources are requested at an unversioned URL,
+ * so a deploy leaves a visitor with a year-old cached copy of every lazily
+ * imported module — new entry point, stale editor. It also meant the font was
+ * fetched twice: once at the preload's `?v=…` URL and once at the bare URL the
+ * stylesheet asked for.
+ *
+ * A path segment is inherited by relative references for free, which fixes
+ * both. The cost is that the version covers the whole tree, so any change to
+ * any asset re-validates all of them. For a site with well under a megabyte of
+ * assets that is a good trade for never serving a mismatched pair.
  */
 final class Assets
 {
-    /** @var array<string,string> relative path => version string */
+    /** @var array<string,string> relative path => content hash */
     private static array $versions = [];
 
     private static bool $manifestLoaded = false;
 
+    private static ?string $tree = null;
+
     public static function url(string $file): string
     {
         $file = ltrim($file, '/');
-        $relative = str_starts_with($file, 'assets/') ? $file : 'assets/' . $file;
+        $relative = str_starts_with($file, 'assets/') ? substr($file, strlen('assets/')) : $file;
 
-        return path('/' . $relative, ['v' => self::version($relative)]);
+        return path('/assets/v' . self::treeVersion() . '/' . $relative);
     }
 
-    private static function version(string $relative): string
+    /**
+     * One version for the whole assets tree.
+     *
+     * Taken from the manifest when there is one, which is the deployed case and
+     * costs a single file read. Without a manifest it walks the tree, which is
+     * only what happens in development.
+     */
+    public static function treeVersion(): string
     {
-        if (isset(self::$versions[$relative])) {
-            return self::$versions[$relative];
+        if (self::$tree !== null) {
+            return self::$tree;
         }
 
         self::loadManifest();
 
-        if (isset(self::$versions[$relative])) {
-            return self::$versions[$relative];
+        if (self::$versions !== []) {
+            return self::$tree = substr(hash('xxh3', implode('|', self::$versions)), 0, 8);
         }
 
-        $absolute = MTL_ROOT . '/' . $relative;
+        $root = MTL_ROOT . '/assets';
 
-        // Fall back to the modification time. It changes on every upload,
-        // which is exactly what a deployment does.
-        $version = is_file($absolute)
-            ? substr(hash('xxh3', (string) filemtime($absolute) . '|' . (string) filesize($absolute)), 0, 8)
-            : 'missing';
+        if (!is_dir($root)) {
+            return self::$tree = 'dev';
+        }
 
-        return self::$versions[$relative] = $version;
+        $parts = [];
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($files as $file) {
+            /** @var \SplFileInfo $file */
+            if ($file->isFile()) {
+                $parts[] = $file->getPathname() . '|' . $file->getMTime() . '|' . $file->getSize();
+            }
+        }
+
+        sort($parts);
+
+        return self::$tree = substr(hash('xxh3', implode("\n", $parts)), 0, 8);
+    }
+
+    /**
+     * Strips the version segment from a request path.
+     *
+     * Production does this in .htaccess; the development server has no rewrite
+     * engine and calls this from router.php instead.
+     */
+    public static function stripVersion(string $path): string
+    {
+        return (string) preg_replace('#^/assets/v[0-9a-z]+/#', '/assets/', $path);
     }
 
     /**
@@ -113,6 +166,7 @@ final class Assets
 
         self::$versions = $map;
         self::$manifestLoaded = true;
+        self::$tree = null;
 
         return count($map);
     }

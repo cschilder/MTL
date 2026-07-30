@@ -58,6 +58,44 @@ final class MarkdownTest extends TestCase
         $this->assertHtmlSame('<p><strong>a <em>b</em> c</strong></p>', $this->render('**a *b* c**'));
     }
 
+    /**
+     * A single delimiter run pairing twice.
+     *
+     * `***x***` is one run of three asterisks on each side, matched first as
+     * strong and then as emphasis. Both pairings write to the same slot in the
+     * output, so the second used to overwrite the first: the bold vanished, and
+     * where the runs were uneven the tags ended up crossed and the renderer
+     * produced overlapping HTML like `<strong>a</em> b</strong>`.
+     */
+    public function testDelimiterRunPairingTwice(): void
+    {
+        $this->assertHtmlSame('<p><em><strong>x</strong></em></p>', $this->render('***x***'));
+        $this->assertHtmlSame('<p><em><strong>x</strong></em></p>', $this->render('___x___'));
+        $this->assertHtmlSame('<p><strong><strong>x</strong></strong></p>', $this->render('****x****'));
+        $this->assertHtmlSame('<p><strong><em>a</em> b</strong></p>', $this->render('***a* b**'));
+        $this->assertHtmlSame('<p><strong>a <em>b</em></strong></p>', $this->render('**a *b***'));
+    }
+
+    /**
+     * Every tag the renderer opens has to be closed in the same order. A broken
+     * emphasis pairing is not only wrong, it breaks the surrounding page layout,
+     * so this is checked structurally rather than by comparing strings.
+     */
+    public function testEmphasisNestingIsWellFormed(): void
+    {
+        foreach (['***x***', '****x****', '***a* b**', '**a *b***', '*a **b** c*', '~~*a*~~', '**a *b* c**'] as $markdown) {
+            $html = $this->render($markdown);
+
+            $previous = libxml_use_internal_errors(true);
+            $document = new \DOMDocument();
+            $loaded = $document->loadXML('<root>' . $html . '</root>');
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+
+            $this->assertTrue($loaded, 'Emphasis produced malformed markup for ' . $markdown . ': ' . $html);
+        }
+    }
+
     public function testUnmatchedDelimitersStayLiteral(): void
     {
         $this->assertHtmlSame('<p>*a</p>', $this->render('*a'));

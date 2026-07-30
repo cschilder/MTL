@@ -57,6 +57,12 @@ final class SettingsService
         'registration.open'     => ['value' => false,                        'type' => 'bool',   'group' => 'users', 'autoload' => true],
         'registration.default_role' => ['value' => 'viewer',                 'type' => 'string', 'group' => 'users', 'autoload' => true],
 
+        // The Android wrapper. Filled in after the APK is signed; until then
+        // /.well-known/assetlinks.json correctly reports that no app is
+        // associated with this domain.
+        'android.package_name'         => ['value' => 'space.r010.mtl',      'type' => 'string', 'group' => 'android', 'autoload' => false],
+        'android.sha256_fingerprints'  => ['value' => '',                    'type' => 'string', 'group' => 'android', 'autoload' => false],
+
         'maintenance.enabled'   => ['value' => false,                        'type' => 'bool',   'group' => 'maintenance', 'autoload' => true],
         'maintenance.message'   => ['value' => '',                           'type' => 'string', 'group' => 'maintenance', 'autoload' => true],
         'maintenance.last_run'  => ['value' => '',                           'type' => 'string', 'group' => 'maintenance', 'autoload' => false],

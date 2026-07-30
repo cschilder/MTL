@@ -76,6 +76,10 @@ return static function (Router $router): void {
     $router->get('/manifest.webmanifest', [FeedController::class, 'manifest'])->name('manifest');
     $router->get('/offline', [HomeController::class, 'offline'])->name('offline');
 
+    // Lets the Android wrapper prove it belongs to this domain, so it opens
+    // full screen instead of in a Custom Tab with an address bar.
+    $router->get('/.well-known/assetlinks.json', [FeedController::class, 'assetLinks'])->name('assetlinks');
+
     // =========================================================================
     // Read-only JSON used by the globe and by the progressive-enhancement
     // layers of the public site. Throttled because they are the cheapest

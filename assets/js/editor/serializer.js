@@ -53,10 +53,11 @@ function serialiseBlock(node, context) {
   switch (tag) {
     case 'h1': case 'h2': case 'h3':
     case 'h4': case 'h5': case 'h6': {
-      // The server renders a document's `#` as an <h2>, so the level is shifted
-      // back on the way out. Without this every save would demote the headings
-      // one more step.
-      const level = Math.max(1, Number(tag[1]) - 1);
+      // One-to-one with the source, because the surface is rendered with
+      // MarkdownOptions::editing(), which applies no heading offset. The
+      // published page does shift `#` to an <h2>, but undoing a shift is lossy
+      // at the top of the range — see that method for why.
+      const level = Number(tag[1]);
       return `${'#'.repeat(level)} ${serialiseInline(element).trim()}`;
     }
 
@@ -113,18 +114,71 @@ function serialiseBlock(node, context) {
       return serialiseMedia(element, '');
 
     case 'section':
-      // The rendered footnote list; its source lives in the definitions, which
-      // are preserved separately, so it is dropped here.
-      if (element.classList.contains('mtl-footnotes')) return null;
+      if (element.classList.contains('mtl-footnotes')) return serialiseFootnotes(element, context);
       return serialiseChildren(element, context);
 
     case 'div':
-      // Browsers wrap lines in <div> while editing. Treat one as a paragraph.
-      return serialiseInline(element).trim() || null;
-
     default:
-      return serialiseInline(element).trim() || null;
+      // Two quite different things arrive here. A browser wraps an edited line
+      // in a bare <div>, which is a paragraph. But the renderer also wraps a
+      // table in <div class="mtl-table-scroll">, and treating that as inline
+      // flattened the table into its cell text — a table in a report did not
+      // survive its first save.
+      return hasBlockChildren(element)
+        ? serialiseChildren(element, context)
+        : serialiseInline(element).trim() || null;
   }
+}
+
+/** Block-level tags that must never be serialised as inline content. */
+const BLOCK_TAGS = new Set([
+  'address', 'article', 'aside', 'blockquote', 'div', 'dl', 'figure', 'footer',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'ol', 'p', 'pre',
+  'section', 'table', 'ul',
+]);
+
+function hasBlockChildren(element) {
+  return [...element.children].some((child) => BLOCK_TAGS.has(child.tagName.toLowerCase()));
+}
+
+/**
+ * Turns the rendered footnote list back into `[^label]: text` definitions.
+ *
+ * This used to return null on the grounds that the definitions were preserved
+ * elsewhere. They were not: saving a report with a footnote kept the `[^1]`
+ * reference and threw the note itself away, leaving a reference pointing at
+ * nothing.
+ *
+ * The label comes from the list item's id, which the renderer builds from the
+ * author's own label, so `[^bron]` comes back as `[^bron]` rather than `[^1]`.
+ */
+function serialiseFootnotes(section, context) {
+  const definitions = [];
+
+  section.querySelectorAll('li[id^="fn-"]').forEach((item) => {
+    const label = item.id.slice('fn-'.length);
+
+    if (label === '') return;
+
+    // Serialised from a copy: the back-link is presentation, and removing it
+    // from the live DOM would break the published page the surface came from.
+    const clone = item.cloneNode(true);
+
+    clone.querySelectorAll('.mtl-footnote-back').forEach((back) => back.remove());
+
+    const body = serialiseChildren(clone, context).trim();
+
+    if (body === '') return;
+
+    // Continuation lines are indented so they stay part of the definition.
+    const [first, ...rest] = body.split('\n');
+
+    definitions.push(
+      [`[^${label}]: ${first}`, ...rest.map((line) => (line === '' ? '' : `    ${line}`))].join('\n'),
+    );
+  });
+
+  return definitions.length > 0 ? definitions.join('\n\n') : null;
 }
 
 function serialiseChildren(element, context) {
@@ -220,7 +274,12 @@ function serialiseMedia(element, caption) {
     : element.getAttribute('src') ?? '';
 
   const alt = element.getAttribute('alt') ?? '';
-  const title = caption ? ` "${caption.replace(/"/g, '\\"')}"` : '';
+
+  // A figure's caption becomes the title; a bare image keeps the title it
+  // already has. Reading only the caption meant `![alt](url "titel")` came back
+  // without its title.
+  const text = caption || element.getAttribute('title') || '';
+  const title = text ? ` "${text.replace(/"/g, '\\"')}"` : '';
 
   return `![${alt}](${reference}${title})`;
 }
@@ -236,18 +295,40 @@ function serialiseInline(node) {
     out += serialiseInlineNode(child);
   }
 
-  return out;
+  // A hard break is "two spaces, newline". The renderer pretty-prints its HTML,
+  // so the text node after a <br> starts with the newline that ended the source
+  // line — which turned one paragraph with a line break into two paragraphs.
+  // Whitespace directly after a break carries no meaning.
+  return out.replace(/ {2}\n[ \t]+/g, '  \n');
+}
+
+/**
+ * Collapses runs of whitespace the way HTML rendering does.
+ *
+ * A newline inside a text node is layout, not content: the renderer puts one
+ * after every block tag and after a <br>. Left alone they were serialised as
+ * real line breaks, so the markdown grew a blank line on each save.
+ */
+function collapseWhitespace(text) {
+  return text.replace(/[\t\n\r ]+/g, ' ');
 }
 
 function serialiseInlineNode(node) {
   if (node.nodeType === Node.TEXT_NODE) {
-    return escapeInline(node.textContent ?? '');
+    return escapeInline(collapseWhitespace(node.textContent ?? ''));
   }
 
   if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
   const element = /** @type {HTMLElement} */ (node);
   const tag = element.tagName.toLowerCase();
+
+  // Decorative markup the renderer adds and the author never typed: the
+  // permalink beside a heading, the arrow back from a footnote. Serialising them
+  // wrote links into the source that then multiplied on every save.
+  if (element.getAttribute('aria-hidden') === 'true' || element.classList.contains('mtl-footnote-back')) {
+    return '';
+  }
 
   switch (tag) {
     case 'strong':

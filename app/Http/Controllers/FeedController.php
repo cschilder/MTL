@@ -231,6 +231,44 @@ final class FeedController extends Controller
             ->header('Cache-Control', 'public, max-age=3600');
     }
 
+    /**
+     * Digital asset links, which is how Android verifies that the app and this
+     * site belong to the same owner.
+     *
+     * Without a valid file here, the wrapper still runs but falls back to a
+     * Custom Tab with a visible address bar rather than a full-screen app.
+     *
+     * The values are settings rather than a static file so the signing
+     * fingerprint can be pasted in from the management environment after the
+     * APK is built, without another upload.
+     */
+    public function assetLinks(Request $request): Response
+    {
+        $package = SettingsService::string('android.package_name');
+        $fingerprints = array_values(array_filter(array_map(
+            'trim',
+            explode(',', SettingsService::string('android.sha256_fingerprints'))
+        )));
+
+        if ($package === '' || $fingerprints === []) {
+            // An empty list is valid JSON and the correct answer: no app is
+            // currently associated with this domain.
+            return Response::json([])
+                ->header('Content-Type', 'application/json')
+                ->header('Cache-Control', 'public, max-age=300');
+        }
+
+        return Response::json([[
+            'relation' => ['delegate_permission/common.handle_all_urls'],
+            'target'   => [
+                'namespace'                => 'android_app',
+                'package_name'             => $package,
+                'sha256_cert_fingerprints' => $fingerprints,
+            ],
+        ]])->header('Content-Type', 'application/json')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
     // -------------------------------------------------------------------------
 
     /**

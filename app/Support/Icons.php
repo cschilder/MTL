@@ -27,7 +27,9 @@ final class Icons
      */
     private const PATHS = [
         // --- Editor formatting -------------------------------------------------
-        'bold'        => '<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>',
+        // Stroked like the rest of the set. Filled, the two bowls have no
+        // counters and the glyph renders as a solid blob rather than a B.
+        'bold'        => '<path d="M8 5v14M8 5h5a3.5 3.5 0 0 1 0 7H8m0 0h6a3.5 3.5 0 0 1 0 7H8"/>',
         'italic'      => '<path d="M15 5h-5M14 19H9M13.5 5l-3 14"/>',
         'strike'      => '<path d="M5 12h14M8.5 8.5A3 3 0 0 1 11.5 6h1a3 3 0 0 1 3 2.6M15.5 15.5a3 3 0 0 1-3 2.5h-1a3 3 0 0 1-3-2.6"/>',
         'code'        => '<path d="m9 8-5 4 5 4M15 8l5 4-5 4"/>',
@@ -118,8 +120,9 @@ final class Icons
             'focusable'        => 'false',
         ];
 
-        // The 'bold' glyph is a filled shape; stroking it looks wrong.
-        if ($name === 'bold' || $name === 'sparkle') {
+        // Sparkle is the one solid glyph in the set: a filled star reads at 18px
+        // where a stroked one turns into a smudge.
+        if ($name === 'sparkle') {
             $defaults['fill'] = 'currentColor';
             $defaults['stroke'] = 'none';
         }

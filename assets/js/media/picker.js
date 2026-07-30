@@ -7,7 +7,7 @@
  * all of which a hand-rolled modal gets wrong on a phone and in a headset.
  */
 
-import { request, t } from '../app.js';
+import { request, t } from '../lib/api.js';
 
 export class MediaPicker {
   static instance = null;

@@ -37,13 +37,19 @@ final class EditorApiController extends Controller
             throw new HttpException(413, 'This document is too large to render.');
         }
 
-        $mode = $request->string('mode', 'document');
+        // `editing` is what fills the rich surface, `document` what fills the
+        // read-only preview pane. They differ only in the heading anchors, which
+        // must not be in the surface: the editor turns the surface back into
+        // markdown, and an anchor there is indistinguishable from a link the
+        // author typed.
+        $options = match ($request->string('mode', 'document')) {
+            'snippet' => MarkdownOptions::snippet(),
+            'editing' => MarkdownOptions::editing(),
+            default   => MarkdownOptions::document(),
+        };
 
         try {
-            $result = Markdown::renderWithContext(
-                $markdown,
-                $mode === 'snippet' ? MarkdownOptions::snippet() : MarkdownOptions::document()
-            );
+            $result = Markdown::renderWithContext($markdown, $options);
         } catch (\Throwable $e) {
             throw new HttpException(422, 'This text could not be rendered: ' . $e->getMessage());
         }

@@ -272,14 +272,21 @@ final class GlobeService
      */
     public static function clientConfig(): array
     {
+        $resolution = SettingsService::string('globe.resolution', 'low');
+
+        // 110m for a phone, 50m where the globe fills the screen. The renderer
+        // derives the coastline file from this one by name, so a single
+        // setting selects both.
+        $detail = $resolution === 'high' ? '50m' : '110m';
+
         return [
             'autoRotate'     => SettingsService::bool('globe.auto_rotate', true),
             'showGraticule'  => SettingsService::bool('globe.show_graticule', true),
             'showTerminator' => SettingsService::bool('globe.show_terminator', true),
             'markerScale'    => (float) SettingsService::get('globe.marker_scale', 1.0),
-            'resolution'     => SettingsService::string('globe.resolution', 'low'),
+            'resolution'     => $resolution,
             'webxr'          => (bool) \MTL\Core\Config::get('globe.webxr', true),
-            'geometry'       => asset('data/land-' . (SettingsService::string('globe.resolution', 'low') === 'high' ? '50m' : '110m') . '.bin'),
+            'geometry'       => asset('data/globe-land-' . $detail . '.png'),
         ];
     }
 }

@@ -44,4 +44,25 @@ final class MarkdownOptions
     {
         return new self(headingOffset: 2, headingAnchors: false, collectHeadings: false);
     }
+
+    /**
+     * What the editor's rich surface is filled with.
+     *
+     * It differs from a document in two ways, and both exist because the editor
+     * converts the surface back to markdown when it saves.
+     *
+     * No heading anchors: a permalink inside a heading is indistinguishable from
+     * a link the author typed, so it was written back out as `[#](#een-kop)` —
+     * one more on every save.
+     *
+     * No heading offset either. A document shifts `#` down to an <h2> so it sits
+     * below the page's own <h1>, but HTML stops at <h6>, so `#####` and `######`
+     * both land on <h6> and the shift cannot be undone: a level-six heading came
+     * back as level five. Rendering the surface unshifted makes the mapping
+     * one-to-one, which is what a round trip needs.
+     */
+    public static function editing(): self
+    {
+        return new self(headingOffset: 0, headingAnchors: false, collectHeadings: false);
+    }
 }

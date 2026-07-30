@@ -86,11 +86,13 @@ export function createSphere(segmentsX = 128, segmentsY = 64) {
 export function parseLineGeometry(buffer, radius = 1.0005) {
   const view = new DataView(buffer);
 
+  // The builder writes the constant 0x4d544c47 ("MTLG" read as big-endian)
+  // with writeUInt32LE, so the bytes on disk are "GLTM" and reading them back
+  // little-endian gives the constant again.
   const magic = view.getUint32(0, true);
 
-  // "MTLG", little-endian.
-  if (magic !== 0x474c544d) {
-    throw new Error('Not a globe geometry file');
+  if (magic !== 0x4d544c47) {
+    throw new Error(`Not a globe geometry file (magic 0x${magic.toString(16)})`);
   }
 
   const version = view.getUint16(4, true);

@@ -10,7 +10,7 @@
  * side simply obeys what /upload/init returns.
  */
 
-import { request, notify, t } from '../app.js';
+import { request, notify, t } from '../lib/api.js';
 
 /** Parts sent at once. Enough to fill a fast connection, few enough that a
  *  phone on mobile data does not stall on the first one. */

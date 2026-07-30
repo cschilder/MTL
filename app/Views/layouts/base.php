@@ -129,7 +129,16 @@ window.MTL = <?= json_encode([
 ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
 </script>
 
-<script type="module" src="<?= e(asset('js/app.js')) ?>"></script>
+<?php
+/*
+ * The nonce is required here as well as on the inline block above. The policy
+ * uses 'strict-dynamic', which switches off host-based allow-listing entirely:
+ * 'self' no longer permits this tag, so without the nonce the browser refuses
+ * to load it. Modules that app.js imports are then trusted transitively, which
+ * is the point of strict-dynamic.
+ */
+?>
+<script type="module" nonce="<?= e(nonce()) ?>" src="<?= e(asset('js/app.js')) ?>"></script>
 <?= $this->section('scripts') ?>
 
 </body>

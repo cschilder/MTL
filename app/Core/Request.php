@@ -207,6 +207,20 @@ final class Request
         return $this->json()[$key] ?? $default;
     }
 
+    /**
+     * True when the client sent this key at all, even as an empty string.
+     *
+     * A partial update needs to tell "field omitted" from "field cleared", and
+     * input() cannot: both come back as null.
+     */
+    public function has(string $key): bool
+    {
+        return array_key_exists($key, $this->routeParams)
+            || array_key_exists($key, $this->body)
+            || array_key_exists($key, $this->query)
+            || array_key_exists($key, $this->json());
+    }
+
     public function string(string $key, string $default = ''): string
     {
         $value = $this->input($key, $default);

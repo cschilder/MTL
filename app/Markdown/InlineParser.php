@@ -369,6 +369,11 @@ final class InlineParser
             'canOpen'  => $canOpen,
             'canClose' => $canClose,
             'active'   => true,
+            // Tags this run has already contributed. A single run can be paired
+            // more than once — `***x***` pairs as strong and then as emphasis —
+            // and each pairing wraps around the previous one, so the tags have to
+            // accumulate rather than replace one another.
+            'tags'     => '',
         ];
 
         $this->position += $runLength;
@@ -456,10 +461,21 @@ final class InlineParser
         $opener['length'] -= $use;
         $closer['length'] -= $use;
 
-        // Rewrite the literal delimiter text that was emitted earlier, leaving
-        // any unused characters in place.
-        $this->out[$opener['index']] = str_repeat($opener['char'], $opener['length']) . $openTag;
-        $this->out[$closer['index']] = $closeTag . str_repeat($closer['char'], $closer['length']);
+        // Each pairing encloses the previous one, so the new opening tag goes in
+        // front of the tags already there and the new closing tag behind them.
+        // Assigning the slot outright instead — which is what this used to do —
+        // threw away the inner pair: `***x***` pairs first as strong and then as
+        // emphasis, and the second pairing overwrote the <strong> with an <em>,
+        // silently dropping the bold. In `**a *b***` it was worse: the two
+        // pairings overwrote each other's tags in a way that left </em> matched
+        // against <strong>, so the renderer emitted overlapping, malformed HTML.
+        $opener['tags'] = $openTag . $opener['tags'];
+        $closer['tags'] .= $closeTag;
+
+        // Any delimiter characters not consumed stay as literal text, outside the
+        // tags.
+        $this->out[$opener['index']] = str_repeat($opener['char'], $opener['length']) . $opener['tags'];
+        $this->out[$closer['index']] = $closer['tags'] . str_repeat($closer['char'], $closer['length']);
 
         if ($opener['length'] === 0) {
             $opener['active'] = false;

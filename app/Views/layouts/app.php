@@ -12,9 +12,14 @@ declare(strict_types=1);
 
 defined('MTL_APP') || exit;
 
-$this->layout('layouts/base');
-
 $immersive = (bool) $this->get('immersive', false);
+
+// The globe page needs the header to float over the sphere. That is a
+// body-level state rather than a shell-level one, because the header is the
+// shell's sibling.
+$this->layout('layouts/base', [
+    'bodyClass' => trim((string) $this->get('bodyClass', '') . ($immersive ? ' mtl-page--immersive' : '')),
+]);
 ?>
 <?php $this->start('body') ?>
 

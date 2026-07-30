@@ -7,7 +7,7 @@
  * task, so both have to work properly.
  */
 
-import { request, notify, t } from '../app.js';
+import { request, notify, t } from '../lib/api.js';
 
 export class Sortable {
   /** @param {HTMLElement} element the [data-sortable] list */

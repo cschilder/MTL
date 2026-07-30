@@ -14,10 +14,19 @@
       var(--mtl-space) 45%,
       var(--mtl-space-far) 100%
     );
-  block-size: 100%;
+
+  // Fills the shell by growing, not by a percentage. A percentage height needs
+  // the parent's height to be definite; when it is not, the box collapses onto
+  // the canvas's intrinsic aspect ratio and leaves a gap below the globe.
+  // min-block-size: 0 is what allows a flex item to be smaller than its
+  // content, which `overflow: hidden` then relies on.
+  flex: 1;
+  min-block-size: 0;
+
   inline-size: 100%;
   overflow: hidden;
   position: relative;
+
   // Vertical panning is handled by the renderer; letting the page scroll at the
   // same time makes the globe feel like it is slipping.
   touch-action: none;
@@ -25,9 +34,14 @@
 }
 
 .mtl-globe__canvas {
-  block-size: 100%;
+  // Absolutely positioned rather than sized in percentages, for the same
+  // reason: a canvas has an intrinsic size from its width and height
+  // attributes, and any indefiniteness in the parent lets that leak into the
+  // layout. Filling the positioned parent cannot.
   display: block;
-  inline-size: 100%;
+  inset: 0;
+  position: absolute;
+
   // While a drag is in progress the cursor is swapped to `grabbing` from
   // script, which is the only reliable way to keep it during pointer capture.
   cursor: grab;
@@ -83,6 +97,13 @@
   color: inherit;
   cursor: pointer;
   display: inline-flex;
+
+  // `display` here would otherwise beat the user-agent rule for [hidden], and
+  // the VR and timeline buttons are hidden until the browser or the content
+  // proves they are usable.
+  &[hidden] {
+    display: none;
+  }
   justify-content: center;
   min-block-size: var(--mtl-touch);
   min-inline-size: var(--mtl-touch);
@@ -102,7 +123,10 @@
   svg {
     block-size: 1.25rem;
     inline-size: 1.25rem;
-    fill: currentcolor;
+
+    // Stroke, not fill: these icons are outlines with their own fill="none",
+    // and a CSS fill overrides that attribute and floods them solid.
+    stroke: currentcolor;
   }
 }
 

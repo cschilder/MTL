@@ -14,7 +14,7 @@
  */
 
 import { htmlToMarkdown } from './serializer.js';
-import { request, notify, t } from '../app.js';
+import { request, notify, t } from '../lib/api.js';
 
 const AUTOSAVE_DELAY = 4000;
 const PREVIEW_DELAY = 400;
@@ -49,6 +49,10 @@ export class MarkdownEditor {
   async init() {
     if (!this.field || !this.surface || !this.source) return;
 
+    // The media picker inserts into whichever editor raised the request, so it
+    // needs a way back from the element to the instance.
+    this.element.mtlEditor = this;
+
     this.source.value = this.field.value;
 
     // The rich surface is seeded with the HTML the server already rendered for
@@ -56,6 +60,16 @@ export class MarkdownEditor {
     const initialHtml = this.element.querySelector('[data-editor-initial]')?.innerHTML ?? '';
 
     this.surface.innerHTML = initialHtml;
+
+    // Without this Chromium separates paragraphs with <div>, which the
+    // serialiser and the block-level commands both have to special-case. Asking
+    // for <p> up front means the surface holds the same block elements the
+    // server renders from the markdown.
+    try {
+      document.execCommand('defaultParagraphSeparator', false, 'p');
+    } catch {
+      // Firefox has never supported setting it and already defaults to <p>.
+    }
 
     this.bindToolbar();
     this.bindSurface();
@@ -142,9 +156,12 @@ export class MarkdownEditor {
     }
 
     try {
+      // `editing` rather than `document`: the surface is converted back to
+      // markdown on save, and the heading permalink anchors a document gets
+      // would be written out as links the author never typed.
       const result = await request(window.MTL.routes.preview, {
         method: 'POST',
-        body: JSON.stringify({ markdown }),
+        body: JSON.stringify({ markdown, mode: 'editing' }),
       });
 
       this.surface.innerHTML = result.html ?? '';
@@ -355,7 +372,9 @@ export class MarkdownEditor {
         break;
 
       case 'heading':
-        this.toggleBlock(`h${Number(value) + 1}`);
+        // The value is the markdown level, and the surface uses the same levels
+        // the source does — see MarkdownOptions::editing().
+        this.toggleBlock(`h${headingTag(value)}`);
         break;
 
       case 'quote':
@@ -393,6 +412,10 @@ export class MarkdownEditor {
       default:
         break;
     }
+
+    // The list and quote commands can nest a block inside the paragraph they
+    // were called on, exactly as the typed shorthands do.
+    this.normaliseBlocks();
 
     this.syncToField();
     this.markDirty();
@@ -621,7 +644,7 @@ export class MarkdownEditor {
 
       if (command === 'heading') {
         const tag = this.currentBlockTag();
-        button.setAttribute('aria-pressed', String(tag === `h${Number(button.dataset.commandValue) + 1}`));
+        button.setAttribute('aria-pressed', String(tag === `h${headingTag(button.dataset.commandValue)}`));
         return;
       }
 
@@ -741,7 +764,7 @@ export class MarkdownEditor {
       const text = node.textContent?.slice(0, window.getSelection().anchorOffset) ?? '';
 
       const rules = [
-        [/^(#{1,6})$/, (m) => this.toggleBlock(`h${Math.min(6, m[1].length + 1)}`)],
+        [/^(#{1,6})$/, (m) => this.toggleBlock(`h${headingTag(m[1].length)}`)],
         [/^[-*+]$/, () => document.execCommand('insertUnorderedList', false)],
         [/^\d+[.)]$/, () => document.execCommand('insertOrderedList', false)],
         [/^>$/, () => this.toggleBlock('blockquote')],
@@ -754,14 +777,87 @@ export class MarkdownEditor {
 
         event.preventDefault();
 
-        // Remove the shorthand before applying the format.
-        node.textContent = node.textContent.slice(text.length);
-
+        // The block command runs first, while the shorthand is still in the
+        // block. Two reasons, both learned the hard way:
+        //
+        //   * execCommand needs a block with content. Applied to an empty one it
+        //     silently formats the *previous* block instead, so "## " on a fresh
+        //     line turned the paragraph above it into a heading.
+        //   * the caret has to be inside the block being formatted, and the only
+        //     way to keep it there is not to touch the DOM first.
         action(match);
+
+        // Then remove the shorthand, through a range rather than by assigning
+        // textContent. Assigning replaces the text node's data outright, which
+        // drops the caret out of the block — after which every following
+        // keystroke was appended to whatever block the caret landed in.
+        this.removeShorthand(text);
+
+        // insertUnorderedList wraps the new list inside the paragraph it was
+        // called on, which is invalid and unserialisable.
+        this.normaliseBlocks();
 
         this.syncToField();
         this.markDirty();
         return;
+      }
+    });
+  }
+
+  /**
+   * Removes the markdown shorthand from the block the caret is in.
+   *
+   * Anchored on the text rather than on the caret, because the browser leaves
+   * the caret in different places depending on the command: formatBlock keeps it
+   * after the shorthand, while insertUnorderedList moves it to the start of the
+   * new list item — in front of it. Deleting "the characters before the caret"
+   * is therefore right half the time, and in the list case deletes nothing at
+   * all and leaves a stray "-" for the next keystrokes to type around.
+   */
+  removeShorthand(shorthand) {
+    const selection = window.getSelection();
+    const anchor = selection?.anchorNode;
+
+    if (!selection || anchor?.nodeType !== Node.TEXT_NODE) return;
+
+    if (!(anchor.textContent ?? '').startsWith(shorthand)) return;
+
+    const range = document.createRange();
+    range.setStart(anchor, 0);
+    range.setEnd(anchor, shorthand.length);
+    range.deleteContents();
+    range.collapse(true);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  /**
+   * Repairs block nesting that execCommand produces but HTML does not allow.
+   *
+   * A <p> cannot contain a list, a heading or a blockquote, yet
+   * insertUnorderedList called on a paragraph produces exactly that. The
+   * serialiser walks blocks, so a list hidden inside a paragraph came out as
+   * run-together text with the list structure gone.
+   *
+   * Nodes are moved rather than re-created, so the text nodes the selection
+   * points at survive and the caret does not jump.
+   */
+  normaliseBlocks() {
+    const nested = this.surface.querySelectorAll(
+      'p > ul, p > ol, p > blockquote, p > pre, p > h1, p > h2, p > h3, p > h4, p > h5, p > h6, p > hr, p > table',
+    );
+
+    nested.forEach((child) => {
+      const paragraph = child.parentElement;
+
+      if (!paragraph) return;
+
+      paragraph.after(child);
+
+      // Whatever is left of the paragraph is either empty or a stray <br>.
+      if ((paragraph.textContent ?? '').trim() === '' && !paragraph.querySelector('img')) {
+        paragraph.remove();
       }
     });
   }
@@ -810,6 +906,11 @@ export class MarkdownEditor {
       );
     });
   }
+}
+
+/** Markdown heading level to the tag the surface uses for it. */
+function headingTag(level) {
+  return Math.min(6, Math.max(1, Number(level) || 1));
 }
 
 function escapeHtml(text) {
