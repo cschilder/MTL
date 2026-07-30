@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Paths the FileProvider may hand to another app. Only the browser's download
+    directory: that is where a photo saved from the site lands, and sharing it
+    onward is the one case the wrapper needs to support.
+-->
+<paths>
+    <files-path name="downloads" path="downloads/" />
+    <cache-path name="cache" path="/" />
+    <external-path name="external" path="Download/" />
+</paths>

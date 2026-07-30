@@ -125,6 +125,8 @@ final class ConsoleKernel
 
             'search:reindex' => (new SearchCommand($this->out))->reindex(),
 
+            'content:rerender' => (new ContentCommand($this->out))->rerender($options),
+
             'maintenance'    => (new MaintenanceCommand($this->out))->run($options),
 
             'optimize'       => $this->optimize(),
@@ -171,6 +173,7 @@ final class ConsoleKernel
                 'media:rebuild'    => 'Regenerate image variants (--missing to skip existing)',
                 'media:verify'     => 'Report media rows whose file is missing, and vice versa',
                 'media:prune'      => 'Delete soft-deleted media older than --days=30',
+                'content:rerender' => 'Re-render stored HTML from the markdown (--dry-run)',
             ],
             'Operations' => [
                 'maintenance'      => 'Run the scheduled maintenance tasks',

@@ -1,0 +1,96 @@
+/*
+ * The MTL Android app.
+ *
+ * It is a Trusted Web Activity: a thin wrapper that opens https://mtl.r010.space
+ * in the user's own Chrome engine, full screen and with no address bar. That is
+ * deliberate rather than lazy — the site is already a progressive web app with
+ * a service worker, so a WebView reimplementation would mean a second rendering
+ * engine to test, a second offline cache, and an app that lags the site every
+ * time it changes.
+ *
+ * The one requirement is that /.well-known/assetlinks.json on the site lists
+ * this package name and the signing certificate's SHA-256 fingerprint. Without
+ * it Android cannot verify the association and falls back to a Custom Tab,
+ * which shows the URL bar.
+ */
+
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'space.r010.mtl'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'space.r010.mtl'
+
+        // 24 covers effectively every device still receiving updates, and is
+        // the floor for the TWA support library.
+        minSdk 24
+        targetSdk 35
+
+        versionCode 1
+        versionName '1.0.0'
+
+        // Read by AndroidManifest.xml through manifest placeholders, so the
+        // host appears in exactly one place.
+        manifestPlaceholders = [
+            hostName            : 'mtl.r010.space',
+            defaultUrl          : 'https://mtl.r010.space/',
+            launcherName        : 'MTL',
+            statusBarColor      : '@color/mtlBackground',
+            navigationBarColor  : '@color/mtlBackground',
+        ]
+
+        resValue 'string', 'app_name', 'MTL'
+    }
+
+    signingConfigs {
+        release {
+            // Supplied by the CI workflow or by a local keystore.properties.
+            // Left unset, the release build is unsigned and has to be signed
+            // afterwards with apksigner.
+            def keystoreFile = System.getenv('MTL_KEYSTORE') ?: findProperty('mtl.keystore')
+
+            if (keystoreFile) {
+                storeFile file(keystoreFile)
+                storePassword System.getenv('MTL_KEYSTORE_PASSWORD') ?: findProperty('mtl.keystorePassword')
+                keyAlias System.getenv('MTL_KEY_ALIAS') ?: findProperty('mtl.keyAlias')
+                keyPassword System.getenv('MTL_KEY_PASSWORD') ?: findProperty('mtl.keyPassword')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+}
+
+dependencies {
+    // The Trusted Web Activity support library. androidx.browser brings the
+    // Custom Tabs client it falls back to.
+    implementation 'androidx.browser:browser:1.8.0'
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

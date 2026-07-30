@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="MTL">
+  <!--
+    The site mark: a globe with a route drawn across it.
+
+    Deliberately drawn rather than photographic, so it stays legible at 16 px in
+    a browser tab and inverts cleanly on a dark background.
+  -->
+  <defs>
+    <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12507f"/>
+      <stop offset="1" stop-color="#08243f"/>
+    </linearGradient>
+    <clipPath id="sphere">
+      <circle cx="32" cy="32" r="26"/>
+    </clipPath>
+  </defs>
+
+  <circle cx="32" cy="32" r="26" fill="url(#ocean)"/>
+
+  <g clip-path="url(#sphere)">
+    <!-- Suggested landmasses, not a real projection: at this size an accurate
+         coastline reads as noise. -->
+    <path fill="#1d7d56" d="M6 24c5-6 12-8 18-5s9 9 6 13-11 6-16 3-9-8-8-11z"/>
+    <path fill="#1d7d56" d="M30 44c4-5 11-6 16-3s6 10 2 13-12 3-16-2-3-6-2-8z"/>
+    <path fill="#1d7d56" d="M40 10c6-2 13 1 16 6s1 11-4 12-11-2-13-7-1-10 1-11z"/>
+
+    <!-- Meridians and parallels. -->
+    <g fill="none" stroke="#8fd3ff" stroke-opacity=".35" stroke-width="1.2">
+      <ellipse cx="32" cy="32" rx="26" ry="10"/>
+      <ellipse cx="32" cy="32" rx="26" ry="20"/>
+      <ellipse cx="32" cy="32" rx="10" ry="26"/>
+      <line x1="32" y1="6" x2="32" y2="58"/>
+    </g>
+
+    <!-- The route, with its two stops. -->
+    <path fill="none" stroke="#f0b429" stroke-width="3" stroke-linecap="round"
+          d="M15 40c8-14 22-20 34-16"/>
+  </g>
+
+  <circle cx="15" cy="40" r="4.5" fill="#f0b429" stroke="#08243f" stroke-width="2"/>
+  <circle cx="49" cy="24" r="4.5" fill="#f0b429" stroke="#08243f" stroke-width="2"/>
+
+  <circle cx="32" cy="32" r="26" fill="none" stroke="#0f7d5c" stroke-width="3"/>
+</svg>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MTL" parent="android:Theme.DeviceDefault.DayNight">
+        <item name="android:navigationBarColor">@color/mtlBackground</item>
+        <item name="android:statusBarColor">@color/mtlBackground</item>
+    </style>
+
+    <!--
+        The splash theme is what shows between the launcher tap and the browser
+        handing over the first frame. A transparent window with the app icon on
+        the globe's own background makes that gap look intentional rather than
+        like a stall.
+    -->
+    <style name="Theme.MTL.Splash" parent="Theme.MTL">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsTranslucent">false</item>
+    </style>
+</resources>

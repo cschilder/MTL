@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the globe's backdrop, so the splash screen and the system bars
+         are continuous with the first frame the page paints. -->
+    <color name="mtlBackground">#FF060A14</color>
+    <color name="mtlAccent">#FF0F7D5C</color>
+</resources>

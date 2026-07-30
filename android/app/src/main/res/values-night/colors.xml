@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The globe backdrop is already dark, so the night values match the day
+         ones. Declared explicitly so a future light theme does not accidentally
+         inherit a bright splash on a dark device. -->
+    <color name="mtlBackground">#FF060A14</color>
+    <color name="mtlAccent">#FF4FD1A5</color>
+</resources>

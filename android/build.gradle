@@ -1,0 +1,11 @@
+// Root build file. The Android Gradle plugin version is declared here and the
+// module applies it; keeping the version in one place is what stops the two
+// from drifting.
+
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
+}
