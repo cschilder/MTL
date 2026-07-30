@@ -162,13 +162,16 @@ final class Validator
 
                 $result = $this->applyRule($name, $field, $value, $argument);
 
-                if ($result === false) {
+                if ($result === RuleOutcome::Failed) {
                     $accepted = false;
                     break;
                 }
 
-                if ($result !== true) {
-                    // A rule may return a coerced value (int, float, DateTime…).
+                // Anything that is not one of the two signals is a coerced value
+                // — an int, a float, a normalised date, or a real boolean. It has
+                // to be tested this way round: `false` is a value a rule returns,
+                // not a way of saying the rule failed.
+                if ($result !== RuleOutcome::Passed) {
                     $value = $result;
                 }
             }
@@ -184,7 +187,7 @@ final class Validator
         $label = $this->label($field);
 
         return match ($name) {
-            'required', 'nullable', 'raw', 'sometimes' => true,
+            'required', 'nullable', 'raw', 'sometimes' => RuleOutcome::Passed,
 
             'string' => is_scalar($value)
                 ? (string) $value
@@ -224,23 +227,23 @@ final class Validator
             'between' => $this->validateBetween($field, $value, (string) $argument, $label),
 
             'in' => in_array((string) $value, explode(',', (string) $argument), true)
-                ? true
+                ? RuleOutcome::Passed
                 : $this->fail($field, __('validation.in', ['field' => $label])),
 
             'regex' => preg_match('#' . $argument . '#u', (string) $value) === 1
-                ? true
+                ? RuleOutcome::Passed
                 : $this->fail($field, __('validation.regex', ['field' => $label])),
 
             'array' => is_array($value)
-                ? true
+                ? RuleOutcome::Passed
                 : $this->fail($field, __('validation.array', ['field' => $label])),
 
             'confirmed' => (string) $value === (string) ($this->data[$field . '_confirmation'] ?? '')
-                ? true
+                ? RuleOutcome::Passed
                 : $this->fail($field, __('validation.confirmed', ['field' => $label])),
 
             'same' => (string) $value === (string) ($this->data[(string) $argument] ?? '')
-                ? true
+                ? RuleOutcome::Passed
                 : $this->fail($field, __('validation.same', ['field' => $label, 'other' => $this->label((string) $argument)])),
 
             'unique' => $this->validateUnique($field, $value, (string) $argument, $label),
@@ -250,7 +253,7 @@ final class Validator
             'password' => $this->validatePassword($field, (string) $value),
 
             'hex' => preg_match('/^[0-9a-fA-F]+$/', (string) $value) === 1
-                ? true
+                ? RuleOutcome::Passed
                 : $this->fail($field, __('validation.hex', ['field' => $label])),
 
             'latitude' => is_numeric($value) && (float) $value >= -90 && (float) $value <= 90
@@ -262,7 +265,7 @@ final class Validator
                 : $this->fail($field, __('validation.longitude', ['field' => $label])),
 
             'timezone' => in_array((string) $value, \DateTimeZone::listIdentifiers(), true)
-                ? true
+                ? RuleOutcome::Passed
                 : $this->fail($field, __('validation.timezone', ['field' => $label])),
 
             default => throw new \InvalidArgumentException('Unknown validation rule: ' . $name),
@@ -326,15 +329,15 @@ final class Validator
         $min = (float) $argument;
 
         if (is_array($value)) {
-            return count($value) >= $min ? true : $this->fail($field, __('validation.min_items', ['field' => $label, 'min' => $argument]));
+            return count($value) >= $min ? RuleOutcome::Passed : $this->fail($field, __('validation.min_items', ['field' => $label, 'min' => $argument]));
         }
 
         if (is_int($value) || is_float($value)) {
-            return $value >= $min ? true : $this->fail($field, __('validation.min_value', ['field' => $label, 'min' => $argument]));
+            return $value >= $min ? RuleOutcome::Passed : $this->fail($field, __('validation.min_value', ['field' => $label, 'min' => $argument]));
         }
 
         return mb_strlen((string) $value, 'UTF-8') >= $min
-            ? true
+            ? RuleOutcome::Passed
             : $this->fail($field, __('validation.min_length', ['field' => $label, 'min' => $argument]));
     }
 
@@ -343,15 +346,15 @@ final class Validator
         $max = (float) $argument;
 
         if (is_array($value)) {
-            return count($value) <= $max ? true : $this->fail($field, __('validation.max_items', ['field' => $label, 'max' => $argument]));
+            return count($value) <= $max ? RuleOutcome::Passed : $this->fail($field, __('validation.max_items', ['field' => $label, 'max' => $argument]));
         }
 
         if (is_int($value) || is_float($value)) {
-            return $value <= $max ? true : $this->fail($field, __('validation.max_value', ['field' => $label, 'max' => $argument]));
+            return $value <= $max ? RuleOutcome::Passed : $this->fail($field, __('validation.max_value', ['field' => $label, 'max' => $argument]));
         }
 
         return mb_strlen((string) $value, 'UTF-8') <= $max
-            ? true
+            ? RuleOutcome::Passed
             : $this->fail($field, __('validation.max_length', ['field' => $label, 'max' => $argument]));
     }
 
@@ -388,7 +391,7 @@ final class Validator
 
         return $query->exists()
             ? $this->fail($field, __('validation.unique', ['field' => $label]))
-            : true;
+            : RuleOutcome::Passed;
     }
 
     private function validateExists(string $field, mixed $value, string $argument, string $label): mixed
@@ -396,7 +399,7 @@ final class Validator
         [$table, $column] = array_pad(explode(',', $argument), 2, 'id');
 
         return Database::instance()->table((string) $table)->where((string) $column, '=', $value)->exists()
-            ? true
+            ? RuleOutcome::Passed
             : $this->fail($field, __('validation.exists', ['field' => $label]));
     }
 
@@ -428,14 +431,16 @@ final class Validator
             }
         }
 
-        return true;
+        // Passed, and deliberately not coerced: the plaintext is handed on
+        // unchanged for hashing.
+        return RuleOutcome::Passed;
     }
 
-    private function fail(string $field, string $message): false
+    private function fail(string $field, string $message): RuleOutcome
     {
         $this->errors[$field][] = $message;
 
-        return false;
+        return RuleOutcome::Failed;
     }
 
     private function label(string $field): string

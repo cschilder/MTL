@@ -118,6 +118,15 @@ final class Totp
 
     private const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
+    /**
+     * Base32 without the `=` padding RFC 4648 specifies.
+     *
+     * Deliberate: the output goes into an `otpauth://` URI, where `=` has to be
+     * percent-escaped and several authenticator apps then read the secret
+     * wrongly. Padding carries no information — it only rounds the text out to a
+     * multiple of eight characters — and base32Decode() accepts it either way,
+     * so a secret copied out of an app that does pad still works.
+     */
     public static function base32Encode(string $bytes): string
     {
         if ($bytes === '') {
