@@ -90,6 +90,11 @@ Het commando controleert PHP-versie en extensies, vraagt om de
 databasegegevens, schrijft `config/config.php`, maakt de tabellen aan en vraagt
 om je eerste beheerdersaccount.
 
+> **De `php` op Strato's shell is de CGI-variant.** Dat werkt gewoon, maar hij
+> drukt vóór de uitvoer een blokje HTTP-headers af (`X-Powered-By`,
+> `Content-type`). Stoort dat, gebruik dan `php -q bin/console.php …` — de
+> `-q` onderdrukt precies die headers.
+
 ### Zonder SSH
 
 Maak `config/config.php` zelf, met `config/config.example.php` als voorbeeld:
@@ -165,8 +170,10 @@ Optioneel maar aan te raden. In het Kundenlogin onder *Hosting → Cron-Jobs*,
 één keer per dag:
 
 ```
-php /pad/naar/webroot/bin/console.php maintenance
+php -q /pad/naar/webroot/bin/console.php maintenance
 ```
+
+(De `-q` houdt de HTTP-headers van Strato's CGI-binary uit de cron-mail.)
 
 Dat ruimt op: verlopen aanmeldpogingen, verlopen tokens, afgebroken uploads,
 tijdelijke bestanden, oude logboeken, en het telt de aantallen per reis opnieuw
@@ -270,6 +277,11 @@ is gebouwd of de bestanden een nieuwe wijzigingsdatum hebben.
 Kijk in de console van de browser. Ontbreekt `assets/data/globe-land-110m.png`,
 dan is de map `assets/data/` niet meegeüpload — sommige FTP-programma's slaan
 mappen zonder tekstbestanden over.
+
+**`bin/console.php` zegt "can only be run from the command line" op de shell.**
+Een oudere versie keurde alles af wat niet de CLI-binary was, en op Strato's
+shell ís `php` de CGI-binary. Werk de bestanden bij: de huidige versie kijkt
+naar wat een webverzoek werkelijk kenmerkt en werkt met beide binaries.
 
 **Aanmelden lukt niet meer en er komt geen foutmelding.**
 Waarschijnlijk de rem op aanmeldpogingen na te veel probeersels. Wacht een
