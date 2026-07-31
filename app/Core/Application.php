@@ -110,6 +110,23 @@ final class Application
                 return false;
             }
 
+            // Deprecations are the one severity that must never take a page
+            // down. They fire on ordinary, still-working code the moment the
+            // host moves to a newer PHP — which is exactly what shared hosting
+            // does, unannounced. Promoting them alongside the real errors
+            // turned every new PHP deprecation into a 500 in production while
+            // development, on an older PHP, stayed green. Logged instead, so
+            // they get fixed on the author's schedule rather than the host's.
+            if ($severity === E_DEPRECATED || $severity === E_USER_DEPRECATED) {
+                Logger::instance()->warning($message, [
+                    'file' => $file,
+                    'line' => $line,
+                    'kind' => 'deprecation',
+                ]);
+
+                return true;
+            }
+
             // Promote notices and warnings to exceptions so a typo in an array
             // key surfaces during development instead of producing a subtly
             // wrong page.
