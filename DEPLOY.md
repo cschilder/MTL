@@ -126,7 +126,9 @@ onleesbaar, en moet iedereen zijn tweefactor opnieuw instellen.
 
 Zolang `config/config.php` ontbreekt, laat elke URL een setup-pagina zien die
 de PHP-versie, de extensies en de schrijfrechten nakijkt. Handig om te
-controleren of de server in orde is voordat je verder gaat.
+controleren of de server in orde is voordat je verder gaat:
+
+![De setup-pagina die verschijnt zolang config/config.php ontbreekt, met de stappen en de servercontroles.](docs/screenshots/setup.png)
 
 De tabellen zelf moeten van de opdrachtregel komen:
 `php bin/console.php install`. Kun je nergens bij een shell, dan staat het
@@ -184,7 +186,9 @@ Meld je aan op `https://jouwdomein/login` en loop dit af:
 * **Instellingen → Wereldbol** — `high` geeft scherpere kustlijnen en een
   grotere download; `low` is voor de meeste reizen genoeg
 * **Beheer → Onderhoud** — hier staat of GD, sodium en de schrijfrechten in orde
-  zijn
+  zijn:
+
+![De onderhoudspagina in het beheer, met de servercontroles en de opruimtaken.](docs/screenshots/admin-maintenance.png)
 
 Zet dan een testreis met een foto op en controleer of de miniaturen verschijnen.
 Blijft een foto leeg, kijk dan bij *Onderhoud* of GD er is; zonder die extensie

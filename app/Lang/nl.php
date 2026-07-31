@@ -249,6 +249,9 @@ return [
     'settings.globe'         => 'Wereldbol',
     'settings.media'         => 'Media',
     'settings.users'         => 'Gebruikers',
+    'setting.android.package_name' => 'Package name',
+    'setting.android.sha256_fingerprints' => 'SHA-256-vingerafdrukken',
+    'settings.android'       => 'Android',
     'settings.maintenance'   => 'Onderhoud',
     'settings.saved'         => 'De instellingen zijn opgeslagen.',
 

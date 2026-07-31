@@ -249,6 +249,9 @@ return [
     'settings.globe'         => 'Globe',
     'settings.media'         => 'Media',
     'settings.users'         => 'Users',
+    'setting.android.package_name' => 'Package name',
+    'setting.android.sha256_fingerprints' => 'SHA-256 fingerprints',
+    'settings.android'       => 'Android',
     'settings.maintenance'   => 'Maintenance',
     'settings.saved'         => 'Settings saved.',
 

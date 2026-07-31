@@ -4,6 +4,8 @@ Dit is een **Trusted Web Activity** (TWA): een dunne schil die
 `https://mtl.r010.space` opent in de browser-engine die al op het toestel
 staat, schermvullend en zonder adresbalk.
 
+![De site op een telefoonscherm — precies wat de app schermvullend toont.](../docs/screenshots/phone-globe.png)
+
 Dat is een bewuste keuze, geen kortere weg. De site is al een progressive web
 app met een service worker, dus een eigen WebView-implementatie zou betekenen:
 een tweede render-engine om te testen, een tweede offline-cache om te
@@ -75,6 +77,9 @@ wat je niet wilt.
    De CI-workflow print deze na een release-build ook in het logboek.
 
 2. Zet in het beheer onder **Instellingen → Android**:
+
+   ![Het Android-tabblad in de instellingen, met de velden Package name en SHA-256 fingerprints.](../docs/screenshots/admin-settings-android.png)
+
    * *Package name*: `space.r010.mtl`
    * *SHA-256 fingerprints*: de vingerafdruk uit stap 1, in de vorm
      `AA:BB:CC:…`. Meerdere waarden scheid je met komma's — dat is nodig

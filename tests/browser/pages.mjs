@@ -83,6 +83,48 @@ for (const viewport of [PHONE, TABLET, LAPTOP, DESKTOP]) {
   await visit('globe', viewport, '/', { settle: 3000 });
 }
 
+// The canvas has to fill its container. A canvas is a replaced element, so
+// `inset: 0` alone centres it at its intrinsic 300×150 instead of stretching
+// it — and because the renderer sizes the drawing buffer from the layout size,
+// that fault is self-stabilising and only visible on a devicePixelRatio-1
+// screen: exactly the kind of thing no overflow or console check ever sees.
+{
+  const context = await browser.newContext({ viewport: LAPTOP, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+
+  await page.goto(`${BASE}/`, { waitUntil: 'load' });
+  await page
+    .waitForFunction(
+      () => ['ready', 'failed', 'unsupported'].includes(
+        document.querySelector('[data-globe]')?.dataset.globeState ?? '',
+      ),
+      null,
+      { timeout: 20000 },
+    )
+    .catch(() => {});
+  await page.waitForTimeout(800);
+
+  const fit = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-globe-canvas]');
+
+    if (!canvas) return null;
+
+    const box = canvas.getBoundingClientRect();
+    const container = canvas.parentElement.getBoundingClientRect();
+
+    return {
+      canvas: `${Math.round(box.width)}x${Math.round(box.height)}`,
+      container: `${Math.round(container.width)}x${Math.round(container.height)}`,
+      fits: Math.abs(box.width - container.width) < 2 && Math.abs(box.height - container.height) < 2,
+    };
+  });
+
+  check('globe canvas fills its container', fit?.fits === true,
+    fit ? `canvas ${fit.canvas} in ${fit.container}` : 'no canvas found');
+
+  await context.close();
+}
+
 await visit('trips', PHONE, '/trips');
 await visit('trips', LAPTOP, '/trips');
 await visit('albums', TABLET, '/albums');

@@ -34,11 +34,21 @@
 }
 
 .mtl-globe__canvas {
-  // Absolutely positioned rather than sized in percentages, for the same
-  // reason: a canvas has an intrinsic size from its width and height
-  // attributes, and any indefiniteness in the parent lets that leak into the
-  // layout. Filling the positioned parent cannot.
+  // Absolutely positioned against the container, AND explicitly sized to it.
+  //
+  // The explicit size is load-bearing. A canvas is a replaced element whose
+  // intrinsic size is its drawing buffer, and `inset: 0` alone does not
+  // stretch a replaced element — it centres it at that intrinsic size. The
+  // renderer, in turn, sizes the buffer from the canvas's *layout* size, which
+  // closes a feedback loop: at devicePixelRatio 1 the canvas settled at its
+  // default 300×150 and the globe rendered as a thumbnail, while at higher
+  // ratios the loop happened to run away until the box was filled — which is
+  // why the fault only showed on 1× screens. With the size pinned to the
+  // container the loop has one fixed point: the buffer follows layout, never
+  // the other way round.
+  block-size: 100%;
   display: block;
+  inline-size: 100%;
   inset: 0;
   position: absolute;
 
