@@ -1,0 +1,322 @@
+// =============================================================================
+// The travel-report editor.
+//
+// Two panes over the same document: a rich contenteditable surface and a plain
+// markdown textarea. Only one is visible at a time and they share the toolbar,
+// so the styling has to make them look like one control that changed mode.
+// =============================================================================
+
+.mtl-editor {
+  background: var(--mtl-surface);
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius);
+  display: flex;
+  flex-direction: column;
+
+  // `clip`, not `hidden`. Both trim the panes to the rounded corners, but
+  // `hidden` makes this element a scroll container — and a scroll container is
+  // what a sticky descendant sticks to. The toolbar was therefore sticking to
+  // the top of the editor instead of to the page, and since the editor itself
+  // never scrolls, it sat permanently 3.5rem down its own box, covering the
+  // first line of the report. `clip` does not create a scroll container, so the
+  // toolbar sticks to the viewport below the site header, as intended.
+  overflow: clip;
+
+  &:focus-within {
+    border-color: var(--mtl-accent);
+    box-shadow: 0 0 0 1px var(--mtl-accent);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Toolbar
+// -----------------------------------------------------------------------------
+
+.mtl-editor__toolbar {
+  align-items: center;
+  background: var(--mtl-surface-sunken);
+  border-block-end: 1px solid var(--mtl-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: var(--mtl-space-1);
+  position: sticky;
+  inset-block-start: var(--mtl-header-height);
+  z-index: var(--mtl-z-sticky);
+}
+
+.mtl-editor__tool {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--mtl-radius);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-block-size: 2rem;
+  min-inline-size: 2rem;
+  padding: 0 var(--mtl-space-1);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, currentcolor 10%, transparent);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+
+  // Reflects the formatting under the caret, the way Slack's toolbar does.
+  &[aria-pressed='true'] {
+    background: color-mix(in srgb, var(--mtl-accent) 18%, transparent);
+    color: var(--mtl-accent);
+  }
+
+  svg {
+    block-size: 1.125rem;
+    inline-size: 1.125rem;
+    pointer-events: none;
+
+    // No `fill` here. The icons are stroked outlines that carry their own
+    // fill="none", and a CSS declaration beats a presentation attribute — so
+    // setting fill: currentcolor painted every closed shape solid, turning the
+    // table, image, code-block and preview icons into black squares. The stroke
+    // colour is what has to follow the text.
+    stroke: currentcolor;
+  }
+}
+
+.mtl-editor__tool-group {
+  display: flex;
+  gap: 2px;
+
+  & + & {
+    border-inline-start: 1px solid var(--mtl-border);
+    margin-inline-start: var(--mtl-space-1);
+    padding-inline-start: var(--mtl-space-1);
+  }
+}
+
+// A touch pointer cannot hit a 2rem button reliably, and a headset pointer
+// certainly cannot.
+@media (pointer: coarse) {
+  .mtl-editor__tool {
+    min-block-size: var(--mtl-touch);
+    min-inline-size: var(--mtl-touch);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Writing surfaces
+// -----------------------------------------------------------------------------
+
+.mtl-editor__surface {
+  // Tall enough to write a real report in without the page scrolling away
+  // under the toolbar, but still resizable.
+  min-block-size: 24rem;
+  outline: 0;
+  overflow-y: auto;
+  padding: var(--mtl-space-5);
+  resize: vertical;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &:empty::before {
+    color: color-mix(in srgb, currentcolor 50%, transparent);
+    content: attr(data-placeholder);
+    pointer-events: none;
+  }
+
+  // The first block's top margin and padding are not honoured against the
+  // scroll container's padding edge, so a report that opens with a heading had
+  // its first line clipped behind the toolbar.
+  > :first-child {
+    margin-block-start: 0;
+    padding-block-start: 0;
+  }
+
+  // Vanilla's type scale gives several heading levels the same size — h1 and h2
+  // both 2.5rem, h3 and h4 both 1.5rem — which is fine on a page that uses two
+  // or three of them, but in the editor the level *is* the information: an author
+  // has to be able to see whether a line is `##` or `###`. Six distinct steps.
+  h1 { font-size: 1.875rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.0625rem; }
+  h5 { font-size: 0.9375rem; }
+  h6 { font-size: 0.875rem; }
+
+  :is(h1, h2, h3, h4, h5, h6) {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-block: var(--mtl-space-4) var(--mtl-space-2);
+  }
+
+  // h5 and h6 are smaller than the body text, so they need something other than
+  // size to read as headings.
+  :is(h5, h6) {
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+}
+
+// Vanilla pulls a heading that directly follows another heading up by -1.5rem, to
+// set a title and its subtitle as one unit. In a document being edited, `#`
+// followed by `##` are two independent headings, and overlapping them made the
+// text unreadable while writing.
+//
+// The class is repeated deliberately. Vanilla's selector is
+// `h1:not(.u-no-margin):not(.u-no-margin--bottom) + h2` — two classes and two
+// elements — and a single `.mtl-editor__surface` ancestor does not reach that.
+// Two occurrences match it, and this stylesheet is imported after Vanilla, so the
+// tie falls this way.
+.mtl-editor__surface.mtl-editor__surface {
+  :is(h1, h2, h3, h4, h5, h6) + :is(h1, h2, h3, h4, h5, h6) {
+    margin-block-start: var(--mtl-space-4);
+    padding-block-start: 0;
+  }
+}
+
+.mtl-editor__source {
+  background: var(--mtl-surface);
+  border: 0;
+  color: inherit;
+  font-family: $font-monospace;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  min-block-size: 24rem;
+  outline: 0;
+  padding: var(--mtl-space-5);
+  resize: vertical;
+  tab-size: 2;
+  inline-size: 100%;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.mtl-editor__preview {
+  border-block-start: 1px solid var(--mtl-border);
+  padding: var(--mtl-space-5);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Status strip
+// -----------------------------------------------------------------------------
+
+.mtl-editor__status {
+  align-items: center;
+  border-block-start: 1px solid var(--mtl-border);
+  color: color-mix(in srgb, currentcolor 65%, transparent);
+  display: flex;
+  font-size: 0.8125rem;
+  gap: var(--mtl-space-4);
+  padding: var(--mtl-space-2) var(--mtl-space-3);
+}
+
+.mtl-editor__status-dot {
+  block-size: 0.5rem;
+  border-radius: 50%;
+  display: inline-block;
+  inline-size: 0.5rem;
+  margin-inline-end: var(--mtl-space-1);
+
+  &.is-saved {
+    background: #0e8420;
+  }
+
+  &.is-dirty {
+    background: #f99b11;
+  }
+
+  &.is-error {
+    background: #c7162b;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Slash-command and mention menu
+// -----------------------------------------------------------------------------
+
+.mtl-editor__menu {
+  background: var(--mtl-surface-raised);
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius);
+  box-shadow: var(--mtl-shadow-lifted);
+  max-block-size: 18rem;
+  min-inline-size: 16rem;
+  overflow-y: auto;
+  padding: var(--mtl-space-1);
+  position: absolute;
+  z-index: var(--mtl-z-modal);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.mtl-editor__menu-item {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--mtl-radius);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  gap: var(--mtl-space-3);
+  min-block-size: var(--mtl-touch);
+  padding-inline: var(--mtl-space-2);
+  text-align: start;
+  inline-size: 100%;
+
+  &:hover,
+  &[aria-selected='true'] {
+    background: color-mix(in srgb, var(--mtl-accent) 16%, transparent);
+  }
+
+  small {
+    color: color-mix(in srgb, currentcolor 60%, transparent);
+    margin-inline-start: auto;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Inline media inside the rich surface
+// -----------------------------------------------------------------------------
+
+.mtl-editor__surface {
+  figure {
+    margin-block: var(--mtl-space-4);
+  }
+
+  img {
+    border-radius: var(--mtl-radius);
+    max-inline-size: 100%;
+  }
+
+  // The node the caret is inside gets a subtle outline so it is clear what a
+  // toolbar action will apply to.
+  [data-selected='true'] {
+    outline: 2px solid var(--mtl-accent);
+    outline-offset: 2px;
+  }
+}
+
+// While a file is dragged over the editor.
+.mtl-editor.is-dropping {
+  border-color: var(--mtl-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mtl-accent) 30%, transparent);
+
+  .mtl-editor__surface,
+  .mtl-editor__source {
+    background: color-mix(in srgb, var(--mtl-accent) 6%, transparent);
+  }
+}

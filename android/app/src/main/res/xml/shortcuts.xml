@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Long-press shortcuts on the launcher icon. They mirror the shortcuts in the
+    web manifest, so the app and an installed PWA behave the same.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="trips"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_trips_short"
+        android:shortcutLongLabel="@string/shortcut_trips_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://mtl.r010.space/trips"
+            android:targetPackage="space.r010.mtl"
+            android:targetClass="com.google.androidbrowserhelper.trusted.LauncherActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="albums"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_albums_short"
+        android:shortcutLongLabel="@string/shortcut_albums_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://mtl.r010.space/albums"
+            android:targetPackage="space.r010.mtl"
+            android:targetClass="com.google.androidbrowserhelper.trusted.LauncherActivity" />
+    </shortcut>
+</shortcuts>

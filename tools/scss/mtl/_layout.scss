@@ -1,0 +1,342 @@
+// =============================================================================
+// Page frame: header, navigation, footer and the shells the routes render into.
+//
+// The application is used on a phone held in one hand, on a tablet, on a
+// desktop, and inside a headset browser at arm's length. Rather than four
+// layouts, there is one that keys off available width and pointer precision.
+// =============================================================================
+
+html {
+  block-size: 100%;
+  // Prevents iOS from inflating text in landscape, which breaks the globe's
+  // control bar.
+  text-size-adjust: 100%;
+}
+
+body {
+  background: var(--mtl-surface);
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100%;
+  // Accounts for the notch and the home indicator on a phone, and for the
+  // rounded corners of a headset's browser panel.
+  padding-block-end: env(safe-area-inset-bottom);
+}
+
+// -----------------------------------------------------------------------------
+// Header
+// -----------------------------------------------------------------------------
+
+.mtl-header {
+  align-items: center;
+  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--mtl-surface) 88%, transparent);
+  border-block-end: 1px solid var(--mtl-border);
+  display: flex;
+  gap: var(--mtl-space-4);
+  min-block-size: var(--mtl-header-height);
+  padding-inline: var(--mtl-space-4);
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--mtl-z-header);
+
+  // On the globe page the header floats over the sphere. Keyed off a class on
+  // <body>, not off the shell: the header is the shell's sibling, so a
+  // descendant selector would never match it.
+  .mtl-page--immersive & {
+    background: color-mix(in srgb, var(--mtl-space) 70%, transparent);
+    border-block-end-color: rgb(255 255 255 / 12%);
+    color: #fff;
+  }
+}
+
+.mtl-header__brand {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  font-weight: 550;
+  gap: var(--mtl-space-2);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  img,
+  svg {
+    block-size: 1.75rem;
+    inline-size: auto;
+  }
+}
+
+.mtl-header__nav {
+  display: flex;
+  flex: 1;
+  gap: var(--mtl-space-1);
+  overflow-x: auto;
+  // Hides the scrollbar on the horizontal nav strip that phones need, without
+  // removing the ability to scroll it.
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.mtl-header__link {
+  align-items: center;
+  border-radius: var(--mtl-radius);
+  color: inherit;
+  display: inline-flex;
+  gap: var(--mtl-space-2);
+  min-block-size: var(--mtl-touch);
+  padding-inline: var(--mtl-space-3);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    background: color-mix(in srgb, currentcolor 8%, transparent);
+    text-decoration: none;
+  }
+
+  &[aria-current='page'] {
+    box-shadow: inset 0 -3px 0 var(--mtl-accent);
+    font-weight: 550;
+  }
+}
+
+.mtl-header__actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--mtl-space-2);
+  margin-inline-start: auto;
+}
+
+// -----------------------------------------------------------------------------
+// Shells
+// -----------------------------------------------------------------------------
+
+.mtl-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
+// Full-bleed: the globe takes whatever is left below the header.
+//
+// No explicit height. The header is sticky and still occupies space, so
+// `100dvh` would overflow by its height, and subtracting the custom property
+// is off by the header's border. Letting flex distribute the space is exact by
+// construction.
+.mtl-shell--immersive {
+  overflow: hidden;
+  position: relative;
+}
+
+.mtl-shell--reading {
+  margin-inline: auto;
+  max-inline-size: 46rem;
+  padding: var(--mtl-space-6) var(--mtl-space-4) var(--mtl-space-7);
+  inline-size: 100%;
+}
+
+.mtl-shell--wide {
+  margin-inline: auto;
+  max-inline-size: 84rem;
+  padding: var(--mtl-space-5) var(--mtl-space-4) var(--mtl-space-7);
+  inline-size: 100%;
+}
+
+// -----------------------------------------------------------------------------
+// Management layout: a side rail that collapses to a drawer.
+// -----------------------------------------------------------------------------
+
+.mtl-admin {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 1fr;
+  min-block-size: 0;
+}
+
+.mtl-admin__rail {
+  background: var(--mtl-surface-sunken);
+  border-inline-end: 1px solid var(--mtl-border);
+  padding: var(--mtl-space-4) var(--mtl-space-3);
+}
+
+.mtl-admin__main {
+  min-inline-size: 0;
+  padding: var(--mtl-space-5) var(--mtl-space-4) var(--mtl-space-7);
+}
+
+@media (min-width: 62rem) {
+  .mtl-admin {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+
+  .mtl-admin__rail {
+    // Stays put while a long media library scrolls past it.
+    align-self: start;
+    max-block-size: calc(100dvh - var(--mtl-header-height));
+    overflow-y: auto;
+    position: sticky;
+    inset-block-start: var(--mtl-header-height);
+  }
+}
+
+// Below that width the rail becomes a drawer, opened from the header.
+@media (max-width: 61.999rem) {
+  .mtl-admin__rail {
+    border-inline-end: 0;
+    display: none;
+
+    &.is-open {
+      display: block;
+    }
+  }
+}
+
+.mtl-admin__nav-group {
+  margin-block-end: var(--mtl-space-5);
+
+  h3 {
+    color: color-mix(in srgb, currentcolor 60%, transparent);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    margin-block-end: var(--mtl-space-2);
+    padding-inline: var(--mtl-space-2);
+    text-transform: uppercase;
+  }
+}
+
+.mtl-admin__nav-link {
+  align-items: center;
+  border-radius: var(--mtl-radius);
+  color: inherit;
+  display: flex;
+  gap: var(--mtl-space-3);
+  min-block-size: var(--mtl-touch);
+  padding-inline: var(--mtl-space-3);
+  text-decoration: none;
+
+  &:hover {
+    background: color-mix(in srgb, currentcolor 8%, transparent);
+    text-decoration: none;
+  }
+
+  &[aria-current='page'] {
+    background: color-mix(in srgb, var(--mtl-accent) 14%, transparent);
+    box-shadow: inset 3px 0 0 var(--mtl-accent);
+    font-weight: 550;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Page header inside the management environment
+// -----------------------------------------------------------------------------
+
+.mtl-page-head {
+  align-items: flex-end;
+  border-block-end: 1px solid var(--mtl-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mtl-space-4);
+  margin-block-end: var(--mtl-space-5);
+  padding-block-end: var(--mtl-space-4);
+
+  h1 {
+    margin: 0;
+  }
+}
+
+.mtl-page-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mtl-space-2);
+  margin-inline-start: auto;
+}
+
+// -----------------------------------------------------------------------------
+// Footer
+// -----------------------------------------------------------------------------
+
+.mtl-footer {
+  border-block-start: 1px solid var(--mtl-border);
+  color: color-mix(in srgb, currentcolor 70%, transparent);
+  font-size: 0.875rem;
+  margin-block-start: auto;
+  padding: var(--mtl-space-5) var(--mtl-space-4);
+
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mtl-space-4);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Notifications
+// -----------------------------------------------------------------------------
+
+.mtl-toasts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mtl-space-2);
+  inset-block-start: calc(var(--mtl-header-height) + var(--mtl-space-3));
+  inset-inline-end: var(--mtl-space-3);
+  max-inline-size: min(26rem, calc(100vw - 2 * var(--mtl-space-3)));
+  position: fixed;
+  z-index: var(--mtl-z-toast);
+
+  // Only the notifications themselves take pointer events, so the strip does
+  // not block the globe behind it.
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Utility helpers used across MTL's own components
+// -----------------------------------------------------------------------------
+
+.mtl-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mtl-space-4);
+}
+
+.mtl-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mtl-space-3);
+}
+
+.mtl-spacer {
+  margin-inline-start: auto;
+}
+
+.mtl-muted {
+  color: color-mix(in srgb, currentcolor 65%, transparent);
+}
+
+.mtl-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mtl-empty {
+  border: 1px dashed var(--mtl-border);
+  border-radius: var(--mtl-radius-lg);
+  padding: var(--mtl-space-6);
+  text-align: center;
+}

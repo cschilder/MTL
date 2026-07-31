@@ -1,0 +1,328 @@
+// =============================================================================
+// Rendered travel reports, trip cards and the public reading experience.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Prose
+//
+// Applied to the HTML the markdown renderer produces. Everything inside is
+// author-controlled, so the rules are written defensively: nothing may escape
+// its column or overlap the page frame.
+// -----------------------------------------------------------------------------
+
+.mtl-prose {
+  line-height: 1.65;
+  overflow-wrap: break-word;
+
+  > * + * {
+    margin-block-start: var(--mtl-space-4);
+  }
+
+  h2,
+  h3,
+  h4 {
+    margin-block-start: var(--mtl-space-6);
+    scroll-margin-block-start: calc(var(--mtl-header-height) + var(--mtl-space-4));
+  }
+
+  // Anchors added by the renderer for deep links into a long report.
+  .mtl-heading-anchor {
+    color: color-mix(in srgb, currentcolor 40%, transparent);
+    margin-inline-start: var(--mtl-space-2);
+    opacity: 0;
+    text-decoration: none;
+    transition: opacity var(--mtl-transition);
+  }
+
+  :is(h2, h3, h4):hover .mtl-heading-anchor,
+  .mtl-heading-anchor:focus-visible {
+    opacity: 1;
+  }
+
+  img {
+    block-size: auto;
+    border-radius: var(--mtl-radius);
+    max-inline-size: 100%;
+  }
+
+  figure {
+    margin-inline: 0;
+  }
+
+  figcaption {
+    color: color-mix(in srgb, currentcolor 70%, transparent);
+    font-size: 0.875rem;
+    margin-block-start: var(--mtl-space-2);
+  }
+
+  blockquote {
+    border-inline-start: 3px solid var(--mtl-accent);
+    color: color-mix(in srgb, currentcolor 85%, transparent);
+    margin-inline: 0;
+    padding-inline-start: var(--mtl-space-4);
+  }
+
+  // A wide table or a long code line scrolls inside its own box rather than
+  // pushing the page sideways.
+  pre {
+    background: var(--mtl-surface-sunken);
+    border-radius: var(--mtl-radius);
+    overflow-x: auto;
+    padding: var(--mtl-space-4);
+  }
+
+  code {
+    font-family: $font-monospace;
+    font-size: 0.9em;
+  }
+
+  :not(pre) > code {
+    background: var(--mtl-surface-sunken);
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+  }
+
+  .mtl-table-scroll {
+    overflow-x: auto;
+  }
+
+  table {
+    inline-size: 100%;
+  }
+
+  hr {
+    border: 0;
+    border-block-start: 1px solid var(--mtl-border);
+  }
+
+  // GitHub-flavoured task lists.
+  .mtl-task-list {
+    list-style: none;
+    padding-inline-start: 0;
+  }
+
+  .mtl-task-list-item {
+    padding-inline-start: 1.75rem;
+    position: relative;
+
+    input[type='checkbox'] {
+      inset-block-start: 0.35em;
+      inset-inline-start: 0;
+      position: absolute;
+    }
+  }
+
+  // Footnotes produced by the renderer.
+  .mtl-footnotes {
+    border-block-start: 1px solid var(--mtl-border);
+    font-size: 0.875rem;
+    margin-block-start: var(--mtl-space-6);
+    padding-block-start: var(--mtl-space-4);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Trip and album cards
+// -----------------------------------------------------------------------------
+
+.mtl-card-grid {
+  display: grid;
+  gap: var(--mtl-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+}
+
+.mtl-card {
+  background: var(--mtl-surface-raised);
+  border: 1px solid var(--mtl-border);
+  border-radius: var(--mtl-radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: box-shadow var(--mtl-transition), transform var(--mtl-transition);
+
+  &:hover {
+    box-shadow: var(--mtl-shadow);
+    transform: translateY(-2px);
+  }
+}
+
+.mtl-card__media {
+  aspect-ratio: 16 / 10;
+  background: var(--mtl-surface-sunken);
+  display: block;
+  object-fit: cover;
+  inline-size: 100%;
+}
+
+.mtl-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--mtl-space-2);
+  padding: var(--mtl-space-4);
+
+  h2,
+  h3 {
+    font-size: 1.125rem;
+    margin: 0;
+  }
+
+  a {
+    // Stretches the link over the whole card so the entire tile is clickable
+    // while the accessible name stays just the title.
+    &::after {
+      content: '';
+      inset: 0;
+      position: absolute;
+    }
+  }
+}
+
+.mtl-card {
+  position: relative;
+}
+
+.mtl-card__meta {
+  color: color-mix(in srgb, currentcolor 65%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: var(--mtl-space-3);
+  margin-block-start: auto;
+}
+
+// A thin strip in the trip's colour, tying the card to its route on the globe.
+.mtl-card__accent {
+  block-size: 3px;
+  background: var(--mtl-card-accent, var(--mtl-accent));
+}
+
+// -----------------------------------------------------------------------------
+// Step reading page
+// -----------------------------------------------------------------------------
+
+.mtl-step-header {
+  margin-block-end: var(--mtl-space-5);
+
+  h1 {
+    margin-block-end: var(--mtl-space-2);
+  }
+}
+
+.mtl-step-meta {
+  color: color-mix(in srgb, currentcolor 65%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mtl-space-4);
+  font-size: 0.9375rem;
+}
+
+.mtl-step-nav {
+  border-block-start: 1px solid var(--mtl-border);
+  display: flex;
+  gap: var(--mtl-space-4);
+  justify-content: space-between;
+  margin-block-start: var(--mtl-space-7);
+  padding-block-start: var(--mtl-space-4);
+
+  a {
+    max-inline-size: 45%;
+  }
+}
+
+// The list of stops shown alongside a trip.
+.mtl-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mtl-step-list__item {
+  display: grid;
+  gap: var(--mtl-space-4);
+  grid-template-columns: auto minmax(0, 1fr);
+  padding-block: var(--mtl-space-4);
+  position: relative;
+}
+
+// The connector drawn down the left, echoing the route on the globe.
+.mtl-step-list__marker {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mtl-space-2);
+
+  &::after {
+    background: var(--mtl-border);
+    content: '';
+    flex: 1;
+    inline-size: 2px;
+  }
+
+  .mtl-step-list__item:last-child &::after {
+    display: none;
+  }
+}
+
+.mtl-step-list__dot {
+  background: var(--mtl-accent);
+  block-size: 0.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  inline-size: 0.75rem;
+}
+
+// -----------------------------------------------------------------------------
+// Hero used at the top of a trip
+// -----------------------------------------------------------------------------
+
+.mtl-hero {
+  align-items: flex-end;
+  block-size: min(60dvh, 32rem);
+  border-radius: var(--mtl-radius-lg);
+  display: flex;
+  overflow: hidden;
+  position: relative;
+
+  img {
+    block-size: 100%;
+    inline-size: 100%;
+    inset: 0;
+    object-fit: cover;
+    position: absolute;
+  }
+}
+
+.mtl-hero__body {
+  // A gradient rather than a flat scrim: keeps the photo readable at the top
+  // while guaranteeing contrast for the title at the bottom.
+  background: linear-gradient(to top, rgb(0 0 0 / 78%), rgb(0 0 0 / 0%));
+  color: #fff;
+  inline-size: 100%;
+  padding: var(--mtl-space-6) var(--mtl-space-5) var(--mtl-space-5);
+  position: relative;
+
+  h1 {
+    color: inherit;
+    margin: 0;
+    text-shadow: 0 1px 4px rgb(0 0 0 / 60%);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Search results
+// -----------------------------------------------------------------------------
+
+.mtl-result {
+  border-block-end: 1px solid var(--mtl-border);
+  padding-block: var(--mtl-space-4);
+
+  mark {
+    background: color-mix(in srgb, var(--mtl-accent) 30%, transparent);
+    color: inherit;
+    padding: 0 0.15em;
+  }
+}

@@ -1,0 +1,124 @@
+// =============================================================================
+// Headset and large-format adjustments.
+//
+// A VR browser (Meta Quest, Pico, Vision Pro, Wolvic) reports a very wide
+// viewport at a low effective resolution, and its pointer is a laser or a gaze
+// ray rather than a fingertip. Two things follow: text has to be larger than a
+// desktop would want, and every target has to be bigger than the 44px phone
+// guideline.
+//
+// There is no media feature for "in a headset", so this keys off the
+// combination that identifies one — a coarse pointer that cannot hover, on a
+// viewport far wider than a tablet — plus an explicit class the application
+// sets when it detects WebXR support.
+// =============================================================================
+
+@mixin mtl-immersive-targets {
+  --mtl-touch: 3.5rem;
+  --mtl-header-height: 4.5rem;
+
+  font-size: 1.125rem;
+
+  .mtl-editor__tool,
+  .mtl-globe__button,
+  .mtl-sortable__handle {
+    min-block-size: var(--mtl-touch);
+    min-inline-size: var(--mtl-touch);
+  }
+
+  // Thin hairlines disappear at headset resolution.
+  .mtl-card,
+  .mtl-form__section,
+  .mtl-editor,
+  .mtl-stat {
+    border-width: 2px;
+  }
+
+  // Long lines are hard to track when the whole panel is at arm's length.
+  .mtl-shell--reading {
+    max-inline-size: 40rem;
+  }
+}
+
+:root.is-immersive {
+  @include mtl-immersive-targets;
+}
+
+@media (min-width: 90rem) and (pointer: coarse) and (hover: none) {
+  :root {
+    @include mtl-immersive-targets;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// While an immersive WebXR session is running the page itself is not visible;
+// only the DOM overlay is. Everything except the globe's own controls is
+// hidden so the overlay does not float in space.
+// -----------------------------------------------------------------------------
+
+:root.is-xr-presenting {
+  .mtl-header,
+  .mtl-footer,
+  .mtl-toasts {
+    display: none;
+  }
+
+  .mtl-globe__controls {
+    // Pulled well inside the viewport: the outer edges of a headset display
+    // sit outside comfortable vision.
+    inset-block-end: 12vh;
+  }
+
+  .mtl-globe__timeline {
+    inset-block-end: 22vh;
+    inline-size: min(36rem, 70vw);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Very large desktop screens: cap the reading column and let the globe use the
+// extra space instead of stretching the text.
+// -----------------------------------------------------------------------------
+
+@media (min-width: 120rem) {
+  .mtl-shell--wide {
+    max-inline-size: 100rem;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Print: a travel report should come out as a readable document.
+// -----------------------------------------------------------------------------
+
+@media print {
+  .mtl-header,
+  .mtl-footer,
+  .mtl-form-bar,
+  .mtl-globe__controls,
+  .mtl-globe__timeline,
+  .mtl-globe__layers,
+  .mtl-toasts,
+  .mtl-step-nav {
+    display: none !important;
+  }
+
+  .mtl-shell--reading,
+  .mtl-shell--wide {
+    max-inline-size: none;
+    padding: 0;
+  }
+
+  .mtl-prose {
+    // Photographs at full bleed waste a lot of ink for little gain.
+    img {
+      max-block-size: 12cm;
+      max-inline-size: 100%;
+    }
+
+    a[href^='http']::after {
+      content: ' (' attr(href) ')';
+      font-size: 0.8em;
+      word-break: break-all;
+    }
+  }
+}

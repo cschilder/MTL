@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- app_name comes from a resValue in build.gradle so the launcher label
+         and the Gradle configuration cannot disagree. -->
+
+    <string name="shortcut_trips_short">Reizen</string>
+    <string name="shortcut_trips_long">Alle reisverhalen</string>
+    <string name="shortcut_albums_short">Albums</string>
+    <string name="shortcut_albums_long">Foto-albums</string>
+</resources>

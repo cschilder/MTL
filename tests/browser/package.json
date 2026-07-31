@@ -1,0 +1,16 @@
+{
+  "name": "mtl-browser-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests for MTL. Development only - Strato never sees this directory.",
+  "scripts": {
+    "roundtrip": "node roundtrip.mjs",
+    "editor": "node editor.mjs",
+    "pages": "node pages.mjs",
+    "all": "node roundtrip.mjs && node editor.mjs && node pages.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
