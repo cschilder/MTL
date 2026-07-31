@@ -269,7 +269,9 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
             throw new \LogicException('Cannot update a record that has not been saved.');
         }
 
-        $values['updated_at'] = gmdate('Y-m-d H:i:s');
+        if (static::hasUpdatedAtColumn()) {
+            $values['updated_at'] = gmdate('Y-m-d H:i:s');
+        }
 
         $encoded = self::encodeForStorage($values, static::$jsonColumns);
 
@@ -290,7 +292,10 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
         $now = gmdate('Y-m-d H:i:s');
 
         $values['created_at'] ??= $now;
-        $values['updated_at'] ??= $now;
+
+        if (static::hasUpdatedAtColumn()) {
+            $values['updated_at'] ??= $now;
+        }
 
         if (!array_key_exists('uuid', $values) && static::hasUuidColumn()) {
             $values['uuid'] = self::newUuid();
@@ -337,6 +342,20 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     protected static function hasUuidColumn(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Whether the table carries an updated_at column.
+     *
+     * The default is yes, and create() and update() stamp it. A model whose
+     * table deliberately has no such column overrides this — writing the stamp
+     * anyway is an unknown-column error the moment the first row is inserted,
+     * which is how tagging a trip broke in production while no test had ever
+     * created a tag.
+     */
+    protected static function hasUpdatedAtColumn(): bool
     {
         return true;
     }

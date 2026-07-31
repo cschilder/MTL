@@ -25,6 +25,12 @@ final class Tag extends Model
         return false;
     }
 
+    /** And no updated_at either: a tag is only ever created or counted. */
+    protected static function hasUpdatedAtColumn(): bool
+    {
+        return false;
+    }
+
     public function url(): string
     {
         return path('/search', ['tag' => $this->string('slug')]);
