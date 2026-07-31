@@ -63,7 +63,10 @@ $this->layout('install/layout', ['step' => 'environment', 'title' => $this->get(
             <p class="p-notification__message"><?= e(__('install.environment_blocked')) ?></p>
         </div>
     </div>
-    <p><a class="p-button" href="<?= e(path('/install')) ?>"><?= e(__('install.recheck')) ?></a></p>
+    <?php // An empty href reloads the URL we are on. That matters here: when
+          // the root .htaccess is the thing that is missing, this page is being
+          // served from / and a link to /install would die on Apache's 404. ?>
+    <p><a class="p-button" href=""><?= e(__('install.recheck')) ?></a></p>
 <?php else: ?>
 
     <h2><?= e(__('install.database_heading')) ?></h2>

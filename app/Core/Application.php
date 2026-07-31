@@ -194,6 +194,18 @@ final class Application
             if (!\MTL\Services\InstallService::isInstalled()
                 && !str_starts_with($request->path, '/install')
             ) {
+                // The root is served without mod_rewrite (DirectoryIndex), and a
+                // missing .htaccess is the most common state a fresh upload is
+                // in — FTP clients skip dotfiles. Redirecting the root to
+                // /install would then land on Apache's own 404, so the first
+                // step renders here directly and its checks say exactly which
+                // file is missing.
+                if ($request->path === '/' || $request->path === '/index.php') {
+                    (new \MTL\Http\Controllers\InstallController())->environment($request)->send();
+
+                    return;
+                }
+
                 (new Response('', 302))->header('Location', path('/install'))->send();
 
                 return;
