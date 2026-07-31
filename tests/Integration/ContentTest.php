@@ -302,6 +302,62 @@ final class ContentTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // Partial updates
+    // -------------------------------------------------------------------------
+
+    /**
+     * The production incident of 31 July: the edit form posts no `position`,
+     * validation materialised the absent field as null, and the update wrote
+     * that null into a NOT NULL column — every trip save answered 500 on a
+     * strict-mode server. An update without a field must leave that field
+     * exactly as it was.
+     */
+    public function testUpdatingATripWithoutPositionKeepsThePosition(): void
+    {
+        $trip = $this->makeTrip();
+        $trip->update(['position' => 7]);
+
+        $updated = TripService::update(Trip::find($trip->id()), [
+            'title'   => 'Bijgewerkt',
+            'body_md' => 'Nieuwe tekst.',
+        ]);
+
+        $this->assertSame('Bijgewerkt', $updated->string('title'));
+        $this->assertSame(7, Trip::find($trip->id())->int('position'));
+    }
+
+    /** The null itself, as the old validator produced it, must also be inert. */
+    public function testANullPositionOrVisibilityDoesNotReachTheDatabase(): void
+    {
+        $trip = $this->makeTrip();
+        $trip->update(['position' => 3]);
+
+        TripService::update(Trip::find($trip->id()), [
+            'title'      => 'Nogmaals',
+            'position'   => null,
+            'visibility' => null,
+        ]);
+
+        $fresh = Trip::find($trip->id());
+
+        $this->assertSame(3, $fresh->int('position'));
+        $this->assertSame(Trip::VISIBILITY_PUBLIC, $fresh->string('visibility'));
+    }
+
+    public function testUpdatingAStepWithoutVisibilityKeepsIt(): void
+    {
+        $step = StepService::create(
+            $this->makeTrip(),
+            ['title' => 'Keflavík', 'body_md' => '', 'visibility' => 'public'],
+            $this->author
+        );
+
+        StepService::update($step, ['title' => 'Keflavík', 'body_md' => 'Tekst.', 'visibility' => null]);
+
+        $this->assertSame('public', Step::find($step->id())->string('visibility'));
+    }
+
+    // -------------------------------------------------------------------------
     // Deletion
     // -------------------------------------------------------------------------
 

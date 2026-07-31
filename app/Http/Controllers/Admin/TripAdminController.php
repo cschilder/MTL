@@ -28,11 +28,16 @@ final class TripAdminController extends Controller
         'body_md'        => 'nullable|string|max:200000|raw',
         'start_date'     => 'nullable|date',
         'end_date'       => 'nullable|date',
-        'status'         => 'nullable|string|in:draft,published,archived',
-        'visibility'     => 'nullable|string|in:public,unlisted,private',
-        'color'          => 'nullable|string|max:7',
+        // `sometimes`, not `nullable`, for everything that lives in a NOT
+        // NULL column. `nullable` materialises an absent field as null, and
+        // the update then wrote that null into the column: every trip save
+        // failed on a strict-mode server because the form posts no
+        // `position`. `sometimes` keeps an absent field absent.
+        'status'         => 'sometimes|string|in:draft,published,archived',
+        'visibility'     => 'sometimes|string|in:public,unlisted,private',
+        'color'          => 'sometimes|string|max:7',
         'cover_media_id' => 'nullable|int',
-        'position'       => 'nullable|int',
+        'position'       => 'sometimes|int',
     ];
 
     public function index(Request $request): Response

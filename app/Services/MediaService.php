@@ -569,7 +569,9 @@ final class MediaService
 
             if ($finfo !== false) {
                 $mime = finfo_file($finfo, $file);
-                finfo_close($finfo);
+                // No finfo_close(): the handle frees itself when it goes out of
+                // scope, and PHP 8.5 deprecates closing it by hand — which took
+                // every upload down on the first host that ran 8.5.
 
                 if (is_string($mime) && $mime !== '') {
                     return strtolower(explode(';', $mime)[0]);

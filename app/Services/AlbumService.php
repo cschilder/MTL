@@ -65,8 +65,15 @@ final class AlbumService
             $values['description_html'] = Markdown::renderSnippet((string) $input['description_md']);
         }
 
-        foreach (['status', 'visibility', 'cover_media_id', 'position'] as $field) {
-            if (array_key_exists($field, $input)) {
+        if (array_key_exists('cover_media_id', $input)) {
+            $values['cover_media_id'] = $input['cover_media_id'];
+        }
+
+        // NOT NULL columns: null or empty means "not submitted", never "clear
+        // it" — writing the null through is what broke album saves in
+        // production. See TripService::update.
+        foreach (['status', 'visibility', 'position'] as $field) {
+            if (isset($input[$field]) && $input[$field] !== '') {
                 $values[$field] = $input[$field];
             }
         }

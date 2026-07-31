@@ -91,11 +91,17 @@ final class StepService
 
         foreach ([
             'latitude', 'longitude', 'altitude_m', 'occurred_at', 'occurred_end_at',
-            'cover_media_id', 'visibility', 'temperature_c',
+            'cover_media_id', 'temperature_c',
         ] as $field) {
             if (array_key_exists($field, $input)) {
                 $values[$field] = $input[$field];
             }
+        }
+
+        // NOT NULL column: null or empty means "not submitted", never "clear
+        // it". See TripService::update for the incident.
+        if (isset($input['visibility']) && $input['visibility'] !== '') {
+            $values['visibility'] = $input['visibility'];
         }
 
         if (array_key_exists('location_name', $input)) {

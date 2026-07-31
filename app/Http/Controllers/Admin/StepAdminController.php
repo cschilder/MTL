@@ -32,8 +32,10 @@ final class StepAdminController extends Controller
         'timezone'        => 'nullable|string|max:64',
         'occurred_at'     => 'nullable|date',
         'occurred_end_at' => 'nullable|date',
-        'status'          => 'nullable|string|in:draft,published',
-        'visibility'      => 'nullable|string|in:inherit,public,private',
+        // `sometimes` because the columns are NOT NULL; see
+        // TripAdminController.
+        'status'          => 'sometimes|string|in:draft,published',
+        'visibility'      => 'sometimes|string|in:inherit,public,private',
         'weather'         => 'nullable|string|max:200',
         'temperature_c'   => 'nullable|numeric|between:-100,70',
         'rating'          => 'nullable|int|between:1,5',

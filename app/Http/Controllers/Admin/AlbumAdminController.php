@@ -25,11 +25,14 @@ final class AlbumAdminController extends Controller
         'description_md' => 'nullable|string|max:100000|raw',
         'trip_id'        => 'nullable|int',
         'step_id'        => 'nullable|int',
-        'status'         => 'nullable|string|in:draft,published',
-        'visibility'     => 'nullable|string|in:inherit,public,unlisted,private',
-        'layout'         => 'nullable|string|in:grid,masonry,story',
+        // NOT NULL columns take `sometimes`: `nullable` turns an absent
+        // field into a null that the database then refuses. See
+        // TripAdminController for the incident this caused.
+        'status'         => 'sometimes|string|in:draft,published',
+        'visibility'     => 'sometimes|string|in:inherit,public,unlisted,private',
+        'layout'         => 'sometimes|string|in:grid,masonry,story',
         'cover_media_id' => 'nullable|int',
-        'position'       => 'nullable|int',
+        'position'       => 'sometimes|int',
     ];
 
     public function index(Request $request): Response

@@ -215,8 +215,18 @@ final class TripService
             $values['body_html'] = $rendered['html'];
         }
 
-        foreach (['start_date', 'end_date', 'cover_media_id', 'visibility', 'position'] as $field) {
+        foreach (['start_date', 'end_date', 'cover_media_id'] as $field) {
             if (array_key_exists($field, $input)) {
+                $values[$field] = $input[$field];
+            }
+        }
+
+        // NOT NULL columns: a null or empty value here means "not submitted",
+        // never "clear it". Writing the null through is how every trip save
+        // broke in production while the development forms happened to always
+        // post these fields.
+        foreach (['visibility', 'position'] as $field) {
+            if (isset($input[$field]) && $input[$field] !== '') {
                 $values[$field] = $input[$field];
             }
         }
