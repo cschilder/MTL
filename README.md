@@ -94,7 +94,7 @@ de globe-geometrie en de browsertests.
 ## Installeren
 
 ```bash
-git clone <deze repository> mtl
+git clone https://github.com/cschilder/MTL.git mtl
 cd mtl
 php bin/console.php install
 ```
