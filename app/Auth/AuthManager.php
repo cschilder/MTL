@@ -424,7 +424,9 @@ final class AuthManager
 
     private function clearRememberCookie(): void
     {
-        if (PHP_SAPI === 'cli' || headers_sent()) {
+        // MTL_CONSOLE as well as the SAPI: Strato's shell runs the CGI
+        // binary, and a console run must never try to send a cookie.
+        if (PHP_SAPI === 'cli' || defined('MTL_CONSOLE') || headers_sent()) {
             return;
         }
 

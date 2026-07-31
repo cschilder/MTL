@@ -90,6 +90,11 @@ Het commando controleert PHP-versie en extensies, vraagt om de
 databasegegevens, schrijft `config/config.php`, maakt de tabellen aan en vraagt
 om je eerste beheerdersaccount.
 
+> **De `php` op Strato's shell is de CGI-variant.** Dat werkt gewoon, maar hij
+> drukt vóór de uitvoer een blokje HTTP-headers af (`X-Powered-By`,
+> `Content-type`). Stoort dat, gebruik dan `php -q bin/console.php …` — de
+> `-q` onderdrukt precies die headers.
+
 ### Zonder SSH
 
 Maak `config/config.php` zelf, met `config/config.example.php` als voorbeeld:
@@ -126,7 +131,9 @@ onleesbaar, en moet iedereen zijn tweefactor opnieuw instellen.
 
 Zolang `config/config.php` ontbreekt, laat elke URL een setup-pagina zien die
 de PHP-versie, de extensies en de schrijfrechten nakijkt. Handig om te
-controleren of de server in orde is voordat je verder gaat.
+controleren of de server in orde is voordat je verder gaat:
+
+![De setup-pagina die verschijnt zolang config/config.php ontbreekt, met de stappen en de servercontroles.](docs/screenshots/setup.png)
 
 De tabellen zelf moeten van de opdrachtregel komen:
 `php bin/console.php install`. Kun je nergens bij een shell, dan staat het
@@ -163,8 +170,10 @@ Optioneel maar aan te raden. In het Kundenlogin onder *Hosting → Cron-Jobs*,
 één keer per dag:
 
 ```
-php /pad/naar/webroot/bin/console.php maintenance
+php -q /pad/naar/webroot/bin/console.php maintenance
 ```
+
+(De `-q` houdt de HTTP-headers van Strato's CGI-binary uit de cron-mail.)
 
 Dat ruimt op: verlopen aanmeldpogingen, verlopen tokens, afgebroken uploads,
 tijdelijke bestanden, oude logboeken, en het telt de aantallen per reis opnieuw
@@ -184,7 +193,9 @@ Meld je aan op `https://jouwdomein/login` en loop dit af:
 * **Instellingen → Wereldbol** — `high` geeft scherpere kustlijnen en een
   grotere download; `low` is voor de meeste reizen genoeg
 * **Beheer → Onderhoud** — hier staat of GD, sodium en de schrijfrechten in orde
-  zijn
+  zijn:
+
+![De onderhoudspagina in het beheer, met de servercontroles en de opruimtaken.](docs/screenshots/admin-maintenance.png)
 
 Zet dan een testreis met een foto op en controleer of de miniaturen verschijnen.
 Blijft een foto leeg, kijk dan bij *Onderhoud* of GD er is; zonder die extensie
@@ -266,6 +277,11 @@ is gebouwd of de bestanden een nieuwe wijzigingsdatum hebben.
 Kijk in de console van de browser. Ontbreekt `assets/data/globe-land-110m.png`,
 dan is de map `assets/data/` niet meegeüpload — sommige FTP-programma's slaan
 mappen zonder tekstbestanden over.
+
+**`bin/console.php` zegt "can only be run from the command line" op de shell.**
+Een oudere versie keurde alles af wat niet de CLI-binary was, en op Strato's
+shell ís `php` de CGI-binary. Werk de bestanden bij: de huidige versie kijkt
+naar wat een webverzoek werkelijk kenmerkt en werkt met beide binaries.
 
 **Aanmelden lukt niet meer en er komt geen foutmelding.**
 Waarschijnlijk de rem op aanmeldpogingen na te veel probeersels. Wacht een

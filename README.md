@@ -7,6 +7,8 @@ Node op de server, geen Composer, geen Docker.
 Foto's en video's uploaden, in albums zetten, per stop een titel en een
 reisverslag schrijven, en het geheel terugzien op een draaibare wereldbol.
 
+![De wereldbol met twee reizen: IJsland en de Rota Vicentina. De schemerzone over de Atlantische Oceaan is de actuele dag-en-nachtgrens.](docs/screenshots/globe.png)
+
 ```
   Publiek                            Beheer
   ───────────────────────────        ─────────────────────────────
@@ -41,6 +43,37 @@ reisverslag schrijven, en het geheel terugzien op een draaibare wereldbol.
 Geen enkele externe request: lettertypen, iconen, stijlen en globe-data staan
 alle in de repository. De pagina laadt van één domein en verder van niets.
 
+## In beeld
+
+De editor: opmaak op het scherm, markdown in de database. De broncodeweergave
+en de voorvertoning zitten achter de knoppen rechtsboven in de werkbalk.
+
+![De editor met een reisverslag: koppen, opsomming, tabel en citaat, met de werkbalk erboven en de stopgegevens ernaast.](docs/screenshots/editor.png)
+
+Hetzelfde verslag, gepubliceerd — met plaats, datum, hoogte, temperatuur en
+waardering uit de stopgegevens:
+
+![De openbare pagina van een stop, met metadata onder de titel en de fotogalerij eronder.](docs/screenshots/step.png)
+
+De vierde en vijfde dimensie van de wereldbol — de tijdbalk waarmee je door de
+reis schuift, en de datalagen die markers inkleuren:
+
+| 4D: de tijdbalk | 5D: de datalagen |
+| --- | --- |
+| ![De wereldbol met de tijdbalk open op 9 december 2025.](docs/screenshots/globe-timeline.png) | ![De wereldbol met het lagenpaneel: geen, aantal foto's, waardering, hoogte of temperatuur.](docs/screenshots/globe-layers.png) |
+
+En op een telefoon, waar de site als progressive web app installeerbaar is:
+
+| De wereldbol | Een reisverslag |
+| --- | --- |
+| ![De wereldbol op een telefoonscherm van 390 pixels breed.](docs/screenshots/phone-globe.png) | ![Een stoppagina op een telefoonscherm.](docs/screenshots/phone-step.png) |
+
+Het beheer, met de zijbalk die op een telefoon een uitklapmenu wordt:
+
+![Het beheeroverzicht: totalen, reizen, stops en het activiteitenlogboek.](docs/screenshots/admin-dashboard.png)
+
+![De mediabibliotheek in het beheer.](docs/screenshots/admin-media.png)
+
 ## Wat je nodig hebt
 
 Op de server:
@@ -61,7 +94,7 @@ de globe-geometrie en de browsertests.
 ## Installeren
 
 ```bash
-git clone <deze repository> mtl
+git clone https://github.com/cschilder/MTL.git mtl
 cd mtl
 php bin/console.php install
 ```

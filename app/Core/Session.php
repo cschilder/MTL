@@ -20,12 +20,23 @@ final class Session
 
     private static bool $started = false;
 
+    /**
+     * A console run, whichever binary it uses. PHP_SAPI alone is not enough:
+     * Strato's shell runs the CGI binary, which reports cgi-fcgi from the
+     * command line, and bin/console.php marks itself with MTL_CONSOLE for
+     * exactly that case.
+     */
+    private static function isConsole(): bool
+    {
+        return PHP_SAPI === 'cli' || defined('MTL_CONSOLE');
+    }
+
     public static function start(): void
     {
-        if (self::$started || PHP_SAPI === 'cli') {
+        if (self::$started || self::isConsole()) {
             self::$started = true;
 
-            if (PHP_SAPI === 'cli' && !isset($_SESSION)) {
+            if (self::isConsole() && !isset($_SESSION)) {
                 // The console and the test runner get a plain array so session
                 // reads and writes work without a real session backend.
                 $_SESSION = [];
@@ -175,7 +186,7 @@ final class Session
      */
     public static function regenerate(bool $deleteOld = true): void
     {
-        if (PHP_SAPI === 'cli' || session_status() !== PHP_SESSION_ACTIVE) {
+        if (self::isConsole() || session_status() !== PHP_SESSION_ACTIVE) {
             return;
         }
 
@@ -186,7 +197,7 @@ final class Session
     {
         $_SESSION = [];
 
-        if (PHP_SAPI === 'cli' || session_status() !== PHP_SESSION_ACTIVE) {
+        if (self::isConsole() || session_status() !== PHP_SESSION_ACTIVE) {
             return;
         }
 
@@ -207,7 +218,7 @@ final class Session
 
     public static function id(): string
     {
-        return PHP_SAPI === 'cli' ? 'cli' : (string) session_id();
+        return self::isConsole() ? 'cli' : (string) session_id();
     }
 
     /** @return array<string,mixed> */
