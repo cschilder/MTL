@@ -186,6 +186,19 @@ final class Application
             }
 
             $this->prepareLocale($request);
+
+            // Between "config exists" and "the first account exists" the whole
+            // site is the installer: every other URL walks the visitor there.
+            // The check is one file-exists once installation has happened, so
+            // steady-state requests pay nothing for it.
+            if (!\MTL\Services\InstallService::isInstalled()
+                && !str_starts_with($request->path, '/install')
+            ) {
+                (new Response('', 302))->header('Location', path('/install'))->send();
+
+                return;
+            }
+
             $this->rememberPreviousUrl($request);
             $this->shareViewData($request);
 

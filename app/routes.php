@@ -31,6 +31,7 @@ use MTL\Http\Controllers\Auth\ProfileController;
 use MTL\Http\Controllers\Auth\TwoFactorController;
 use MTL\Http\Controllers\FeedController;
 use MTL\Http\Controllers\HomeController;
+use MTL\Http\Controllers\InstallController;
 use MTL\Http\Controllers\MediaController;
 use MTL\Http\Controllers\SearchController;
 use MTL\Http\Controllers\StepController;
@@ -39,6 +40,21 @@ use MTL\Http\Controllers\TripController;
 defined('MTL_APP') || exit;
 
 return static function (Router $router): void {
+
+    // =========================================================================
+    // The web installer
+    //
+    // Live only between "config/config.php is filled in" and "the first
+    // account exists"; after that every one of these answers 404. The
+    // controller enforces that itself, so the routes carry no middleware
+    // beyond the global headers-and-CSRF pair.
+    // =========================================================================
+
+    $router->get('/install', [InstallController::class, 'environment'])->name('install');
+    $router->post('/install/database', [InstallController::class, 'migrate'])->name('install.database');
+    $router->get('/install/admin', [InstallController::class, 'administrator'])->name('install.admin');
+    $router->post('/install/admin', [InstallController::class, 'createAdministrator'])->name('install.admin.create');
+    $router->get('/install/done', [InstallController::class, 'done'])->name('install.done');
 
     // =========================================================================
     // Public site

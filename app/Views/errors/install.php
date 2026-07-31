@@ -64,23 +64,11 @@ $checks = [
             is kept secret and never changed afterwards.
         </li>
         <li class="p-list__item">
-            Create the tables and the first administrator account:
-            <code>php bin/console.php install</code>. Strato's Hosting Advanced
-            plan includes SSH; on a plan without it, see below.
+            Reload this page. The web installer takes over from here: it checks
+            the server, repairs what it can, creates the tables and asks for
+            your first administrator account.
         </li>
     </ol>
-
-    <h2>Without shell access</h2>
-
-    <p>
-        The schema lives in <code>db/migrations/</code> as ordinary
-        <code>.sql</code> files. Import them in filename order through
-        phpMyAdmin, first replacing every <code>{{prefix}}</code> with your table
-        prefix — with nothing at all, if you are not using one. Then run
-        <code>php bin/console.php user:create</code> from anywhere that can reach
-        the database, or insert a row into <code>users</code> with an Argon2id
-        hash in <code>password_hash</code>.
-    </p>
 
     <h2>Server checks</h2>
 

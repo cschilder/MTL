@@ -100,7 +100,13 @@ php bin/console.php install
 ```
 
 Het setup-commando controleert de omgeving, schrijft `config/config.php`, maakt
-de tabellen aan en vraagt om het eerste beheerdersaccount. Daarna:
+de tabellen aan en vraagt om het eerste beheerdersaccount.
+
+Zonder opdrachtregel kan het ook volledig in de browser: vul
+`config/config.php` in (voorbeeld: `config/config.example.php`) en open de
+site — de **webinstaller** op `/install` controleert de server, herstelt wat
+hij zelf kan, richt de database in en maakt je beheerdersaccount aan. Zodra dat
+account bestaat, vergrendelt hij zichzelf. Daarna:
 
 ```bash
 php bin/console.php serve          # http://127.0.0.1:8000
@@ -162,7 +168,7 @@ Zie `app/Core/Assets.php`.
 ```bash
 php bin/console.php serve                # ontwikkelserver
 php bin/console.php test                 # 105 tests, heeft alleen PHP nodig
-php bin/console.php test --integration   # + 34 tests tegen een database
+php bin/console.php test --integration   # + 41 tests tegen een database
 php bin/console.php help                 # alle commando's
 ```
 

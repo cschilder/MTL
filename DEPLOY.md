@@ -79,25 +79,8 @@ storage/tmp/        755
 
 ## 3. Instellen
 
-Kun je bij SSH (Hosting Advanced heeft dat), dan is dit het makkelijkst:
-
-```bash
-cd ~/pad/naar/webroot
-php bin/console.php install
-```
-
-Het commando controleert PHP-versie en extensies, vraagt om de
-databasegegevens, schrijft `config/config.php`, maakt de tabellen aan en vraagt
-om je eerste beheerdersaccount.
-
-> **De `php` op Strato's shell is de CGI-variant.** Dat werkt gewoon, maar hij
-> drukt vóór de uitvoer een blokje HTTP-headers af (`X-Powered-By`,
-> `Content-type`). Stoort dat, gebruik dan `php -q bin/console.php …` — de
-> `-q` onderdrukt precies die headers.
-
-### Zonder SSH
-
-Maak `config/config.php` zelf, met `config/config.example.php` als voorbeeld:
+Eén bestand invullen, en de rest gebeurt in de browser. Maak
+`config/config.php`, met `config/config.example.php` als voorbeeld:
 
 ```php
 <?php
@@ -126,21 +109,47 @@ op de opdrachtregel hebt, met 32 willekeurige bytes in base64:
 openssl rand -base64 32
 ```
 
+Laat je de sleutel leeg, dan genereert de installer er zo meteen zelf een en
+zet hem in het bestand — mits `config/config.php` beschrijfbaar is.
+
 **Bewaar die sleutel.** Raak je hem kwijt, dan is alles wat ermee versleuteld is
 onleesbaar, en moet iedereen zijn tweefactor opnieuw instellen.
 
-Zolang `config/config.php` ontbreekt, laat elke URL een setup-pagina zien die
-de PHP-versie, de extensies en de schrijfrechten nakijkt. Handig om te
-controleren of de server in orde is voordat je verder gaat:
+### De webinstaller
 
-![De setup-pagina die verschijnt zolang config/config.php ontbreekt, met de stappen en de servercontroles.](docs/screenshots/setup.png)
+Open daarna gewoon je domein. Elke URL leidt naar `/install`, en die wizard
+doet wat een installateur hoort te doen:
 
-De tabellen zelf moeten van de opdrachtregel komen:
-`php bin/console.php install`. Kun je nergens bij een shell, dan staat het
-schema in `db/migrations/` als gewone `.sql`-bestanden: importeer ze op
-bestandsnaam-volgorde via phpMyAdmin, en vervang eerst elke `{{prefix}}` door je
-tabel-prefix — of door niets, als je er geen gebruikt. Maak daarna een
-beheerder aan met `php bin/console.php user:create`.
+1. **Omgeving** — controleert PHP-versie, extensies, schrijfrechten en de
+   beveiligingsbestanden, en herstelt zelf wat te herstellen valt: ontbrekende
+   `storage/`-mappen worden aangemaakt, ontbrekende weigerregels
+   (`app/.htaccess` enzovoort) teruggezet, een lege `app.key` gegenereerd.
+   Wat overblijft is precies wat alleen jij kunt oplossen, met de reden erbij.
+2. **Database** — maakt verbinding met de gegevens uit `config/config.php`
+   (met de échte foutmelding als dat niet lukt) en richt het schema in.
+3. **Beheerder** — sitenaam plus het eerste account. Je bent daarna meteen
+   aangemeld.
+
+![De omgevingsstap van de webinstaller: alle controles, wat zojuist zelf hersteld is, en de databasestatus.](docs/screenshots/installer-environment.png)
+
+Zodra het eerste account bestaat, vergrendelt de installer zichzelf: `/install`
+geeft vanaf dat moment een 404, alsof de route nooit bestaan heeft. (Bewust
+opnieuw installeren kan alleen door én alle accounts én
+`storage/cache/installed.lock` te verwijderen.)
+
+### Liever de opdrachtregel
+
+Hetzelfde kan via SSH: `php bin/console.php install` stelt dezelfde vragen en
+doet hetzelfde werk, en schrijft desgewenst ook `config/config.php` voor je.
+
+> **De `php` op Strato's shell is de CGI-variant.** Dat werkt gewoon, maar hij
+> drukt vóór de uitvoer een blokje HTTP-headers af. Stoort dat, gebruik dan
+> `php -q bin/console.php …`.
+
+Zolang `config/config.php` óók nog ontbreekt, toont elke URL eerst een statische
+setup-pagina met dezelfde servercontroles:
+
+![De setup-pagina die verschijnt zolang config/config.php ontbreekt.](docs/screenshots/setup.png)
 
 ## 4. HTTPS
 
@@ -277,6 +286,11 @@ is gebouwd of de bestanden een nieuwe wijzigingsdatum hebben.
 Kijk in de console van de browser. Ontbreekt `assets/data/globe-land-110m.png`,
 dan is de map `assets/data/` niet meegeüpload — sommige FTP-programma's slaan
 mappen zonder tekstbestanden over.
+
+**De site blijft naar /install verwijzen terwijl alles al is ingericht.**
+De vergrendeling kon niet worden geschreven: controleer of `storage/cache/`
+beschrijfbaar is. De installer herstelt dat normaliter zelf; lukt ook dat niet,
+dan zijn de rechten op `storage/` het probleem.
 
 **`bin/console.php` zegt "can only be run from the command line" op de shell.**
 Een oudere versie keurde alles af wat niet de CLI-binary was, en op Strato's
