@@ -31,3 +31,7 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+
+# Browser-test dependencies (development only)
+/tests/browser/node_modules
+/tests/browser/package-lock.json
