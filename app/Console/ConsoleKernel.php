@@ -11,6 +11,8 @@ use MTL\Core\Database;
 use MTL\Core\Logger;
 use MTL\Core\Migrator;
 use MTL\Core\Translator;
+use MTL\Models\Step;
+use MTL\Services\StepService;
 
 defined('MTL_APP') || exit;
 
@@ -127,6 +129,8 @@ final class ConsoleKernel
 
             'content:rerender' => (new ContentCommand($this->out))->rerender($options),
 
+            'geocode:backfill' => $this->geocodeBackfill(),
+
             'maintenance'    => (new MaintenanceCommand($this->out))->run($options),
 
             'optimize'       => $this->optimize(),
@@ -174,6 +178,7 @@ final class ConsoleKernel
                 'media:verify'     => 'Report media rows whose file is missing, and vice versa',
                 'media:prune'      => 'Delete soft-deleted media older than --days=30',
                 'content:rerender' => 'Re-render stored HTML from the markdown (--dry-run)',
+                'geocode:backfill' => 'Fill in coordinates for stops that have none (photos, then place names)',
             ],
             'Operations' => [
                 'maintenance'      => 'Run the scheduled maintenance tasks',
@@ -304,6 +309,44 @@ final class ConsoleKernel
 
         $assets = Assets::buildManifest();
         $this->out->success('Asset manifest: ' . $assets . ' files.');
+
+        return 0;
+    }
+
+    /**
+     * Places every stop in the database that has no coordinates yet, from its
+     * photos' geotags, its location name, or its title — the same routine as
+     * the button on the trip edit screen, for whole libraries at once.
+     */
+    private function geocodeBackfill(): int
+    {
+        $rows = Step::active()
+            ->whereNull('latitude')
+            ->orderBy('trip_id')
+            ->orderBy('position')
+            ->get();
+
+        if ($rows === []) {
+            $this->out->info('Every stop already has coordinates.');
+
+            return 0;
+        }
+
+        $placed = 0;
+
+        foreach (Step::fromRows($rows) as $step) {
+            $label = $step->string('title');
+
+            if (StepService::place($step)) {
+                $this->out->success(sprintf('%s → %.5f, %.5f', $label, $step->latitude(), $step->longitude()));
+                $placed++;
+            } else {
+                $this->out->warn($label . ': no photo geotag and no place found for its name');
+            }
+        }
+
+        $this->out->line('');
+        $this->out->info($placed . ' of ' . count($rows) . ' stop(s) placed.');
 
         return 0;
     }

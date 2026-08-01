@@ -159,6 +159,7 @@ return static function (Router $router): void {
         $admin->delete('/trips/{id:\d+}', [TripAdminController::class, 'destroy'])->name('admin.trips.destroy');
         $admin->post('/trips/{id:\d+}/restore', [TripAdminController::class, 'restore'])->name('admin.trips.restore');
         $admin->post('/trips/{id:\d+}/reorder', [TripAdminController::class, 'reorderSteps'])->name('admin.trips.reorder');
+        $admin->post('/trips/{id:\d+}/geocode', [TripAdminController::class, 'geocodeSteps'])->name('admin.trips.geocode');
 
         // --- Steps ------------------------------------------------------------
         $admin->get('/trips/{trip:\d+}/steps/new', [StepAdminController::class, 'create'])->name('admin.steps.create');

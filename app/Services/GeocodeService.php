@@ -37,6 +37,9 @@ final class GeocodeService
     /** @var (callable(string,array<int,string>):?string)|null */
     private static $transport = null;
 
+    /** When this process last talked to the real service, in microseconds. */
+    private static float $lastNetworkCall = 0.0;
+
     /** Test seam: replaces the HTTP fetch with a canned response. */
     public static function swapTransport(?callable $transport): void
     {
@@ -136,6 +139,17 @@ final class GeocodeService
         if (self::$transport !== null) {
             return (self::$transport)($url, ['User-Agent: ' . $userAgent]);
         }
+
+        // Nominatim's policy is at most one request per second. A backfill
+        // over a whole trip fires lookups in a loop, so the gap is enforced
+        // here rather than trusted to every caller.
+        $since = microtime(true) - self::$lastNetworkCall;
+
+        if ($since < 1.0) {
+            usleep((int) ((1.0 - $since) * 1_000_000));
+        }
+
+        self::$lastNetworkCall = microtime(true);
 
         try {
             if (function_exists('curl_init')) {

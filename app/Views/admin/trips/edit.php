@@ -134,6 +134,15 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
                         <p><?= e(__('trip.globe_placed', ['placed' => $placed, 'total' => count($steps)])) ?></p>
                     <?php endif; ?>
 
+                    <?php if ($placed < count($steps)): ?>
+                        <?php // Submits its own form (declared after the main
+                              // one — forms cannot nest) via the form attribute. ?>
+                        <button type="submit" form="mtl-geocode-all" class="p-button" style="margin: 0;">
+                            <?= e(__('trip.geocode_all')) ?>
+                        </button>
+                        <p class="p-form-help-text"><?= e(__('trip.geocode_all_hint')) ?></p>
+                    <?php endif; ?>
+
                     <?php if ($trip->string('status') !== 'published'): ?>
                         <p class="mtl-muted"><?= e(__('trip.globe_draft')) ?></p>
                     <?php elseif ($trip->string('visibility') === 'private'): ?>
@@ -201,6 +210,13 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
         <?php endif; ?>
     </div>
 </form>
+
+<?php if (!$isNew): ?>
+    <form id="mtl-geocode-all" method="post"
+          action="<?= e(path('/admin/trips/' . $trip->id() . '/geocode')) ?>">
+        <?= csrf_field() ?>
+    </form>
+<?php endif; ?>
 
 <?php // ---- Stops ------------------------------------------------------------ ?>
 <?php if (!$isNew): ?>

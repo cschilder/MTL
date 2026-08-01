@@ -32,6 +32,12 @@ final class TestCommand
     {
         Autoloader::register(['MTL\\Tests\\' => MTL_ROOT . '/tests']);
 
+        // No test ever talks to the outside world. A test that wants geocoder
+        // answers swaps in its own canned transport; everything else — every
+        // step created with a place-like title — gets "unreachable" for free
+        // instead of a real HTTP attempt with a real timeout.
+        \MTL\Services\GeocodeService::swapTransport(static fn (): ?string => null);
+
         $filter = is_string($options['filter'] ?? null) ? $options['filter'] : null;
         $wantsIntegration = isset($options['integration']) || isset($options['all']);
 

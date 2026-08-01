@@ -11,6 +11,7 @@ use MTL\Http\Controllers\Controller;
 use MTL\Models\Album;
 use MTL\Models\Tag;
 use MTL\Models\Trip;
+use MTL\Services\StepService;
 use MTL\Services\TripService;
 
 defined('MTL_APP') || exit;
@@ -192,6 +193,40 @@ final class TripAdminController extends Controller
         TripService::reorderSteps($trip, $order);
 
         return $this->respond($request, ['order' => $order], $trip->editUrl(), __('trip.updated'));
+    }
+
+    /**
+     * Places every stop of the trip that has no coordinates yet.
+     *
+     * One button for "I typed my whole journey and the globe is still empty":
+     * each unplaced stop is given its position from the geotag of its photos,
+     * its location name, or its title, in that order.
+     */
+    public function geocodeSteps(Request $request): Response
+    {
+        /** @var Trip $trip */
+        $trip = $this->findOrFail(Trip::class, (int) $request->param('id', '0'));
+
+        $this->authorize('trip.update', $trip);
+
+        // Lookups against the outside world take a second each, deliberately;
+        // a long trip must not die on the default execution limit.
+        @set_time_limit(300);
+
+        $placed = 0;
+        $left = 0;
+
+        foreach ($trip->steps() as $step) {
+            if ($step->hasCoordinates()) {
+                continue;
+            }
+
+            StepService::place($step) ? $placed++ : $left++;
+        }
+
+        $message = __('trip.geocoded', ['placed' => $placed, 'left' => $left]);
+
+        return $this->back($trip->editUrl(), $message, $placed === 0 && $left > 0 ? 'caution' : 'positive');
     }
 
     /**

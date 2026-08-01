@@ -7,6 +7,8 @@ namespace MTL\Tests\Integration;
 use MTL\Auth\AuthManager;
 use MTL\Auth\Password;
 use MTL\Core\Database;
+use MTL\Models\Media;
+use MTL\Models\Step;
 use MTL\Models\Trip;
 use MTL\Models\User;
 use MTL\Services\GeocodeService;
@@ -38,7 +40,7 @@ final class GeocodeTest extends TestCase
     {
         $db = Database::instance();
 
-        foreach (['step_media', 'steps', 'trips', 'audit_log', 'search_index', 'users'] as $table) {
+        foreach (['step_media', 'steps', 'trips', 'media', 'audit_log', 'search_index', 'users'] as $table) {
             $db->statement('DELETE FROM ' . Database::quoteIdentifier($table));
         }
 
@@ -60,7 +62,9 @@ final class GeocodeTest extends TestCase
 
     protected function tearDown(): void
     {
-        GeocodeService::swapTransport(null);
+        // Back to the suite-wide "unreachable" transport, never to the real
+        // network: passing null here would re-enable actual HTTP.
+        GeocodeService::swapTransport(static fn (): ?string => null);
         AuthManager::swap(null);
         self::clearGeocodeCache();
     }
@@ -235,6 +239,109 @@ final class GeocodeTest extends TestCase
 
         $this->assertNull($step->latitude());
         $this->assertNull($step->longitude());
+    }
+
+    public function testAStopTitledLikeAPlaceIsGeocodedToo(): void
+    {
+        GeocodeService::swapTransport(static fn (): string => self::ROTTERDAM);
+
+        // No location field at all: people type the place as the title.
+        $step = StepService::create($this->makeTrip(), [
+            'title'   => 'Rotterdam',
+            'body_md' => '',
+            'status'  => 'published',
+        ], $this->author);
+
+        $this->assertSame(51.9244201, $step->latitude());
+        $this->assertSame(4.4777325, $step->longitude());
+    }
+
+    // -------------------------------------------------------------------------
+    // Backfill: placing stops that already exist
+    // -------------------------------------------------------------------------
+
+    /** An unplaced stop, created while the geocoder found nothing. */
+    private function makeUnplacedStep(string $title = 'Ergens'): Step
+    {
+        GeocodeService::swapTransport(static fn (): ?string => null);
+
+        $step = StepService::create($this->makeTrip(), [
+            'title'   => $title,
+            'body_md' => '',
+            'status'  => 'published',
+        ], $this->author);
+
+        $this->assertNull($step->latitude());
+        self::clearGeocodeCache();
+
+        return $step;
+    }
+
+    public function testPlaceUsesThePhotosGeotagFirst(): void
+    {
+        $step = $this->makeUnplacedStep();
+
+        $media = Media::create([
+            'path'      => '2026/08/01/test.jpg',
+            'latitude'  => 55.9533,
+            'longitude' => -3.1883,
+        ]);
+
+        Database::instance()->table('step_media')->insert([
+            'step_id'    => $step->id(),
+            'media_id'   => $media->id(),
+            'position'   => 0,
+            'created_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
+        // The photo already knows where it was taken; the outside world must
+        // not be asked at all.
+        GeocodeService::swapTransport(static function (): string {
+            throw new \RuntimeException('the geocoder must not be asked');
+        });
+
+        $this->assertTrue(StepService::place($step));
+        $this->assertSame(55.9533, $step->latitude());
+        $this->assertSame(-3.1883, $step->longitude());
+    }
+
+    public function testPlaceFallsBackToTheTitleAndFillsTheLocation(): void
+    {
+        $step = $this->makeUnplacedStep('Rotterdam');
+
+        GeocodeService::swapTransport(static fn (): string => self::ROTTERDAM);
+
+        $this->assertTrue(StepService::place($step));
+        $this->assertSame(51.9244201, $step->latitude());
+        $this->assertSame(4.4777325, $step->longitude());
+        $this->assertSame('NL', $step->string('country_code'));
+        $this->assertSame('Rotterdam', $step->string('location_name'));
+    }
+
+    public function testPlaceLeavesAnUnfindableStopAlone(): void
+    {
+        $step = $this->makeUnplacedStep('Iets zonder plaats');
+
+        GeocodeService::swapTransport(static fn (): string => '[]');
+
+        $this->assertFalse(StepService::place($step));
+        $this->assertNull($step->latitude());
+    }
+
+    public function testPlaceDoesNotTouchAStopThatIsAlreadyPlaced(): void
+    {
+        GeocodeService::swapTransport(static fn (): string => self::ROTTERDAM);
+
+        $step = StepService::create($this->makeTrip(), [
+            'title'     => 'Al geplaatst',
+            'body_md'   => '',
+            'status'    => 'published',
+            'latitude'  => 63.985,
+            'longitude' => -22.6056,
+        ], $this->author);
+
+        $this->assertFalse(StepService::place($step));
+        $this->assertSame(63.985, $step->latitude());
     }
 
     public function testAnExistingCountryCodeIsKept(): void

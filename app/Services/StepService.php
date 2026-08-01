@@ -287,6 +287,89 @@ final class StepService
         ];
     }
 
+    /**
+     * Gives an existing stop without coordinates its place on the globe.
+     *
+     * Everything the stop already carries is tried, cheapest first: the
+     * geotag of its photos (local, exact, free), then the location name, then
+     * the title — people type "Edinburgh" as a title at least as often as in
+     * the location field. Returns whether the stop ended up placed.
+     */
+    public static function place(Step $step): bool
+    {
+        if ($step->latitude() !== null || $step->longitude() !== null) {
+            return false;
+        }
+
+        $values = [];
+
+        $suggestion = self::suggestFromMedia($step);
+
+        if ($suggestion['latitude'] !== null) {
+            $values = [
+                'latitude'  => $suggestion['latitude'],
+                'longitude' => $suggestion['longitude'],
+            ];
+        } else {
+            foreach ([$step->string('location_name'), $step->string('title')] as $query) {
+                $query = trim($query);
+
+                if ($query === '') {
+                    continue;
+                }
+
+                try {
+                    $hit = GeocodeService::best($query, Translator::locale());
+                } catch (\Throwable) {
+                    $hit = null;
+                }
+
+                if ($hit === null) {
+                    continue;
+                }
+
+                $values = [
+                    'latitude'  => $hit['latitude'],
+                    'longitude' => $hit['longitude'],
+                ];
+
+                if ($step->string('country_code') === '' && $hit['country'] !== '') {
+                    $values['country_code'] = $hit['country'];
+                }
+
+                // A stop placed via its title gets the resolved place as its
+                // location, so the public page can say where this was.
+                if (trim($step->string('location_name')) === '') {
+                    $values['location_name'] = mb_substr($hit['name'], 0, 191, 'UTF-8');
+                }
+
+                break;
+            }
+        }
+
+        if ($values === []) {
+            return false;
+        }
+
+        $step->update($values);
+
+        $trip = $step->trip();
+
+        if ($trip !== null) {
+            TripService::refreshAggregates($trip);
+            TripService::refreshStepDistances($trip);
+        }
+
+        SearchService::index($step);
+
+        AuditService::log('step.placed', $step, [
+            'latitude'  => $values['latitude'],
+            'longitude' => $values['longitude'],
+        ]);
+
+        return true;
+    }
+
     private static function normaliseCountry(mixed $code): string
     {
         $code = strtoupper(trim((string) $code));
@@ -329,8 +412,16 @@ final class StepService
         }
 
         $name = trim((string) ($input['location_name'] ?? ''));
+        $previous = $step === null ? '' : trim($step->string('location_name'));
 
-        if ($name === '' || ($step !== null && $name === $step->string('location_name'))) {
+        // No location typed? The title works too: "Rotterdam" or "Falkirk" as
+        // a stop title is at least as common as filling in the location field.
+        if ($name === '') {
+            $name = trim((string) ($input['title'] ?? ''));
+            $previous = $step === null ? '' : trim($step->string('title'));
+        }
+
+        if ($name === '' || ($step !== null && $name === $previous)) {
             // Nothing to look up, or the same unplaced name as before — the
             // earlier lookup already failed and a save is not a retry loop.
             return $input;

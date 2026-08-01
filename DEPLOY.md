@@ -209,14 +209,17 @@ Meld je aan op `https://jouwdomein/login` en loop dit af:
 Zet dan een testreis met een foto op en controleer of de miniaturen verschijnen.
 
 > **Een reis verschijnt pas op de wereldbol als minstens één stop coördinaten
-> heeft.** Die hoef je niet te kennen: vul bij *Locatie* alleen de plaatsnaam
-> in — "Rotterdam", "Edinburgh" — en de coördinaten worden bij het opslaan
-> automatisch opgezocht (server-side, via OpenStreetMaps Nominatim, met
-> cache). De knop *Zoek coördinaten* naast het veld toont de kandidaten
-> vooraf. Handmatig kan ook: plak gerust "63.985, -22.605" (zoals een
-> kaart-app het kopieert) in het eerste coördinatenveld, het paar wordt
-> vanzelf gesplitst. De zijbalk van het reis-bewerkscherm laat zien hoeveel
-> stops op de bol staan en waarschuwt als dat er nul zijn.
+> heeft.** Die hoef je niet te kennen: een plaatsnaam is genoeg — als titel
+> van de stop ("Edinburgh") of in het veld *Locatie*. Bij het opslaan worden
+> de coördinaten automatisch opgezocht (server-side, via OpenStreetMaps
+> Nominatim, met cache), en foto's met GPS-gegevens plaatsen hun stop ook
+> vanzelf. Voor een reis die al bestaat: open de reis in het beheer en klik
+> in de zijbalk onder *Wereldbol* op **Zoek coördinaten voor alle stops** —
+> elke stop zonder coördinaten krijgt zijn plek uit zijn foto's, locatie of
+> titel. Hetzelfde kan voor alles tegelijk op de shell:
+> `php -q bin/console.php geocode:backfill`. Handmatig kan ook nog steeds:
+> plak "63.985, -22.605" in het eerste coördinatenveld en het paar wordt
+> vanzelf gesplitst.
 Blijft een foto leeg, kijk dan bij *Onderhoud* of GD er is; zonder die extensie
 worden er geen varianten gemaakt.
 
@@ -300,8 +303,10 @@ mappen zonder tekstbestanden over.
 **Een plaatsnaam krijgt geen coördinaten.**
 De server kon nominatim.openstreetmap.org niet bereiken (uitgaande HTTPS) of
 de dienst kende de naam niet. Probeer de knop *Zoek coördinaten* naast het
-locatieveld: die toont wat er wel gevonden wordt. Een stop zonder coördinaten
-opnieuw opslaan met een (aangepaste) plaatsnaam probeert het gewoon nog eens.
+locatieveld: die toont wat er wel gevonden wordt. De knop *Zoek coördinaten
+voor alle stops* op het reis-bewerkscherm probeert het voor de hele reis
+tegelijk, en een stop zonder coördinaten opnieuw opslaan met een (aangepaste)
+plaatsnaam of titel probeert het gewoon nog eens.
 
 **De site blijft naar /install verwijzen terwijl alles al is ingericht.**
 De vergrendeling kon niet worden geschreven: controleer of `storage/cache/`

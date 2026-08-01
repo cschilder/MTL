@@ -475,11 +475,15 @@ return [
 
     'trip.globe'            => 'Wereldbol',
     'trip.globe_placed'     => ':placed van de :total stops heeft coördinaten en staat op de wereldbol.',
-    'trip.globe_none'       => 'Nog geen enkele stop heeft coördinaten; deze reis verschijnt daarom niet op de wereldbol. Vul bij elke stop de breedte- en lengtegraad in — "63.985, -22.605" plakken in het eerste veld splitst het paar vanzelf.',
+    'trip.globe_none'       => 'Nog geen enkele stop heeft coördinaten; deze reis verschijnt daarom niet op de wereldbol. Klik hieronder op "Zoek coördinaten voor alle stops" — een plaatsnaam als titel of locatie is genoeg, en foto\'s met GPS-gegevens tellen ook.',
     'trip.globe_none_short' => 'Deze stop staat niet op de wereldbol.',
     'trip.globe_draft'      => 'Status is niet "published": bezoekers zien deze reis nergens, ook niet op de wereldbol.',
     'trip.globe_private'    => 'Zichtbaarheid staat op "private": alleen jij en redacteuren zien deze reis.',
     'step.no_coordinates'   => 'geen coördinaten',
+
+    'trip.geocode_all'      => 'Zoek coördinaten voor alle stops',
+    'trip.geocode_all_hint' => 'Elke stop zonder coördinaten krijgt zijn plek uit de GPS-gegevens van zijn foto\'s, de locatie of de titel.',
+    'trip.geocoded'         => ':placed stop(s) op de wereldbol gezet; :left niet gevonden.',
 
     'step.geocode_button'    => 'Zoek coördinaten',
     'step.geocode_hint'      => 'Typ een plaatsnaam — "Rotterdam", "Edinburgh" — en de coördinaten worden opgezocht. Leeg gelaten? Dan gebeurt dat vanzelf bij het opslaan.',

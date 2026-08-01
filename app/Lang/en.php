@@ -474,11 +474,15 @@ return [
 
     'trip.globe'            => 'Globe',
     'trip.globe_placed'     => ':placed of :total stops have coordinates and appear on the globe.',
-    'trip.globe_none'       => 'No stop has coordinates yet, so this trip does not appear on the globe. Fill in latitude and longitude on each stop — pasting "63.985, -22.605" into the first field splits the pair automatically.',
+    'trip.globe_none'       => 'No stop has coordinates yet, so this trip does not appear on the globe. Click "Find coordinates for every stop" below — a place name as the title or location is enough, and photos with GPS data count too.',
     'trip.globe_none_short' => 'This stop does not appear on the globe.',
     'trip.globe_draft'      => 'Status is not "published": visitors do not see this trip anywhere, the globe included.',
     'trip.globe_private'    => 'Visibility is "private": only you and editors see this trip.',
     'step.no_coordinates'   => 'no coordinates',
+
+    'trip.geocode_all'      => 'Find coordinates for every stop',
+    'trip.geocode_all_hint' => 'Every stop without coordinates gets its place from its photos\' GPS data, its location, or its title.',
+    'trip.geocoded'         => ':placed stop(s) put on the globe; :left not found.',
 
     'step.geocode_button'    => 'Find coordinates',
     'step.geocode_hint'      => 'Type a place name — "Rotterdam", "Edinburgh" — and the coordinates are looked up. Left empty? That happens automatically on save.',
