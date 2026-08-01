@@ -479,4 +479,10 @@ return [
     'trip.globe_draft'      => 'Status is not "published": visitors do not see this trip anywhere, the globe included.',
     'trip.globe_private'    => 'Visibility is "private": only you and editors see this trip.',
     'step.no_coordinates'   => 'no coordinates',
+
+    'step.geocode_button'    => 'Find coordinates',
+    'step.geocode_hint'      => 'Type a place name — "Rotterdam", "Edinburgh" — and the coordinates are looked up. Left empty? That happens automatically on save.',
+    'step.geocode_throttled' => 'Hold on: too many searches in a row. Try again in :seconds seconds.',
+    'js.geocode.searching'   => 'Searching…',
+    'js.geocode.none'        => 'No place found by that name.',
 ];

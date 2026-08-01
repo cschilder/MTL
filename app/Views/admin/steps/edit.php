@@ -150,8 +150,22 @@ $localDate = static function (string $stored): string {
                 <legend><?= e(__('step.location')) ?></legend>
 
                 <label for="location_name"><?= e(__('step.location')) ?></label>
-                <input type="text" id="location_name" name="location_name" maxlength="180"
-                       value="<?= e((string) $value('location_name')) ?>">
+                <div class="mtl-form__row" style="align-items: end;">
+                    <input type="text" id="location_name" name="location_name" maxlength="180"
+                           value="<?= e((string) $value('location_name')) ?>" style="flex: 1;">
+                    <button type="button" class="p-button"
+                            data-geocode
+                            data-geocode-endpoint="<?= e(path('/admin/api/geocode')) ?>"
+                            data-geocode-query="#location_name"
+                            data-geocode-latitude="#latitude"
+                            data-geocode-longitude="#longitude"
+                            data-geocode-country="#country_code"
+                            style="margin: 0;">
+                        <?= e(__('step.geocode_button')) ?>
+                    </button>
+                </div>
+                <ul class="mtl-geocode" data-geocode-results hidden></ul>
+                <p class="p-form-help-text"><?= e(__('step.geocode_hint')) ?></p>
 
                 <div class="mtl-form__row">
                     <div>

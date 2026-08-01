@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MTL\Services;
 
 use MTL\Core\Database;
+use MTL\Core\Translator;
 use MTL\Markdown\Markdown;
 use MTL\Models\Step;
 use MTL\Models\Trip;
@@ -24,6 +25,8 @@ final class StepService
     public static function create(Trip $trip, array $input, User $author): Step
     {
         $title = trim((string) ($input['title'] ?? ''));
+
+        $input = self::geocodeWhenUnplaced($input);
 
         $rendered = Markdown::renderWithContext((string) ($input['body_md'] ?? ''));
 
@@ -67,6 +70,10 @@ final class StepService
      */
     public static function update(Step $step, array $input): Step
     {
+        if ($step->latitude() === null && $step->longitude() === null) {
+            $input = self::geocodeWhenUnplaced($input, $step);
+        }
+
         $before = $step->raw();
         $values = [];
         $mediaIds = [];
@@ -296,6 +303,57 @@ final class StepService
         }
 
         return in_array($timezone, \DateTimeZone::listIdentifiers(), true) ? $timezone : '';
+    }
+
+    /**
+     * Fills in coordinates from the place name when the author gave none.
+     *
+     * "Rotterdam, Schiphol, Edinburgh" is how people think about a journey;
+     * nobody knows latitudes by heart. When a stop arrives with a location
+     * name and empty coordinate fields, the geocoder gets one shot at it —
+     * best effort: a save must never fail or stall on the outside world, so an
+     * unreachable geocoder simply leaves the fields empty and the management
+     * screen keeps saying the stop is not on the globe yet.
+     *
+     * @param array<string,mixed> $input
+     *
+     * @return array<string,mixed>
+     */
+    private static function geocodeWhenUnplaced(array $input, ?Step $step = null): array
+    {
+        $hasCoordinates = ($input['latitude'] ?? null) !== null && ($input['latitude'] ?? '') !== ''
+            && ($input['longitude'] ?? null) !== null && ($input['longitude'] ?? '') !== '';
+
+        if ($hasCoordinates) {
+            return $input;
+        }
+
+        $name = trim((string) ($input['location_name'] ?? ''));
+
+        if ($name === '' || ($step !== null && $name === $step->string('location_name'))) {
+            // Nothing to look up, or the same unplaced name as before — the
+            // earlier lookup already failed and a save is not a retry loop.
+            return $input;
+        }
+
+        try {
+            $hit = GeocodeService::best($name, Translator::locale());
+        } catch (\Throwable) {
+            return $input;
+        }
+
+        if ($hit === null) {
+            return $input;
+        }
+
+        $input['latitude'] = $hit['latitude'];
+        $input['longitude'] = $hit['longitude'];
+
+        if (trim((string) ($input['country_code'] ?? '')) === '' && $hit['country'] !== '') {
+            $input['country_code'] = $hit['country'];
+        }
+
+        return $input;
     }
 
     private static function normaliseRating(mixed $rating): ?int

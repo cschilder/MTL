@@ -272,6 +272,117 @@ function enhanceCoordinatePaste() {
   });
 }
 
+/**
+ * The "find coordinates" button on the stop form.
+ *
+ * Asks the server (own previous places first, then the geocoder), lists the
+ * candidates, and a click on one fills latitude, longitude and — when still
+ * empty — the country. Built with textContent throughout: the names come from
+ * an external service and must render as text no matter what they contain.
+ */
+function enhanceGeocode() {
+  const button = document.querySelector('[data-geocode]');
+
+  if (!button) return;
+
+  const queryField = document.querySelector(button.dataset.geocodeQuery);
+  const latitude = document.querySelector(button.dataset.geocodeLatitude);
+  const longitude = document.querySelector(button.dataset.geocodeLongitude);
+  const country = document.querySelector(button.dataset.geocodeCountry);
+  const list = document.querySelector('[data-geocode-results]');
+
+  if (!queryField || !latitude || !longitude || !list) return;
+
+  const search = async () => {
+    const query = queryField.value.trim();
+
+    if (query.length < 2) return;
+
+    button.disabled = true;
+    list.hidden = false;
+    list.textContent = '';
+
+    const busy = document.createElement('li');
+    busy.className = 'mtl-geocode__status';
+    busy.textContent = t('js.geocode.searching');
+    list.append(busy);
+
+    try {
+      const payload = await request(
+        `${button.dataset.geocodeEndpoint}?q=${encodeURIComponent(query)}`,
+        { method: 'GET' },
+      );
+
+      list.textContent = '';
+
+      if (payload.error) {
+        const item = document.createElement('li');
+        item.className = 'mtl-geocode__status';
+        item.textContent = payload.error;
+        list.append(item);
+      }
+
+      if ((payload.results ?? []).length === 0 && !payload.error) {
+        const item = document.createElement('li');
+        item.className = 'mtl-geocode__status';
+        item.textContent = t('js.geocode.none');
+        list.append(item);
+        return;
+      }
+
+      for (const hit of payload.results) {
+        const item = document.createElement('li');
+        const pick = document.createElement('button');
+
+        pick.type = 'button';
+        pick.className = 'mtl-geocode__hit';
+
+        const name = document.createElement('strong');
+        name.textContent = hit.name + (hit.country ? ` (${hit.country})` : '');
+
+        const detail = document.createElement('span');
+        detail.className = 'mtl-muted';
+        detail.textContent = hit.display || `${hit.latitude}, ${hit.longitude}`;
+
+        pick.append(name, detail);
+
+        pick.addEventListener('click', () => {
+          latitude.value = String(hit.latitude);
+          longitude.value = String(hit.longitude);
+
+          if (country && country.value.trim() === '' && hit.country) {
+            country.value = hit.country;
+          }
+
+          latitude.dispatchEvent(new Event('input', { bubbles: true }));
+          longitude.dispatchEvent(new Event('input', { bubbles: true }));
+
+          list.hidden = true;
+          list.textContent = '';
+        });
+
+        item.append(pick);
+        list.append(item);
+      }
+    } catch (error) {
+      list.textContent = '';
+      notify(error.message, 'negative');
+    } finally {
+      button.disabled = false;
+    }
+  };
+
+  button.addEventListener('click', search);
+
+  // Enter in the place field searches instead of submitting half a form.
+  queryField.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      search();
+    }
+  });
+}
+
 // ---------------------------------------------------------------------------
 
 function boot() {
@@ -281,6 +392,7 @@ function boot() {
   enhanceThemeToggle();
   enhanceAdminDrawer();
   enhanceCoordinatePaste();
+  enhanceGeocode();
 
   detectImmersiveDevice();
   registerServiceWorker();

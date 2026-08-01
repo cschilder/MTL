@@ -27,6 +27,7 @@ final class InstallService
     private const WRITABLE_DIRECTORIES = [
         'storage',
         'storage/cache',
+        'storage/cache/geocode',
         'storage/logs',
         'storage/media',
         'storage/tmp',

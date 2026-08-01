@@ -9,8 +9,11 @@ use MTL\Core\Request;
 use MTL\Core\Response;
 use MTL\Core\Session;
 use MTL\Http\Controllers\Controller;
+use MTL\Auth\RateLimiter;
+use MTL\Core\Translator;
 use MTL\Markdown\Markdown;
 use MTL\Markdown\MarkdownOptions;
+use MTL\Services\GeocodeService;
 
 defined('MTL_APP') || exit;
 
@@ -112,13 +115,12 @@ final class EditorApiController extends Controller
     /**
      * Turns a place name into coordinates.
      *
-     * MTL ships no geocoder and calls no external service: doing so would send
-     * every place an author types to a third party, and Strato's outbound
-     * connections are not something a personal site should depend on. Instead
-     * this searches the places already used on this site, which is what the
-     * author usually wants — the same town from a previous trip — and
-     * otherwise says so, leaving the coordinate fields to be filled in by hand
-     * or taken from a photo's geotag.
+     * Three sources, in order of intimacy: coordinates typed straight in, the
+     * places this site has already used (the same town from a previous trip is
+     * the common case), and finally the world at large through
+     * GeocodeService — the one deliberate exception to the no-external-calls
+     * rule, made server-side and only ever for a signed-in author, so no
+     * visitor's browser talks to anyone but this site.
      */
     public function geocode(Request $request): Response
     {
@@ -161,6 +163,33 @@ final class EditorApiController extends Controller
                     'source'    => 'coordinates',
                 ]);
             }
+
+            return Response::json(['results' => $results]);
+        }
+
+        // The world's places, after the author's own. Rate limited per user:
+        // the results are cached, but the cache must not be fillable at
+        // keystroke speed against a free service.
+        $bucket = 'geocode:user:' . (string) $this->auth()->id();
+
+        if (RateLimiter::tooManyAttempts($bucket, 30)) {
+            return Response::json([
+                'results' => $results,
+                'error'   => __('step.geocode_throttled', ['seconds' => RateLimiter::availableIn($bucket)]),
+            ]);
+        }
+
+        RateLimiter::hit($bucket, 30, 60);
+
+        foreach (GeocodeService::search($query, Translator::locale()) as $hit) {
+            $results[] = [
+                'name'      => $hit['name'],
+                'display'   => $hit['display'],
+                'country'   => $hit['country'],
+                'latitude'  => $hit['latitude'],
+                'longitude' => $hit['longitude'],
+                'source'    => 'geocoder',
+            ];
         }
 
         return Response::json(['results' => $results]);

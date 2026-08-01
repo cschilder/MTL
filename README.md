@@ -40,8 +40,13 @@ reisverslag schrijven, en het geheel terugzien op een draaibare wereldbol.
   verbinding. De Android-app is een Trusted Web Activity om diezelfde site
   heen — geen tweede implementatie die achterloopt.
 
-Geen enkele externe request: lettertypen, iconen, stijlen en globe-data staan
-alle in de repository. De pagina laadt van één domein en verder van niets.
+Geen enkele externe request in de browser: lettertypen, iconen, stijlen en
+globe-data staan alle in de repository. De pagina laadt van één domein en
+verder van niets. De ene bewuste uitzondering zit aan de serverkant: wie bij
+een stop alleen een plaatsnaam invult, krijgt de coördinaten opgezocht via
+[Nominatim](https://nominatim.org/) (OpenStreetMap). Dat gebeurt uitsluitend
+voor ingelogde auteurs, wordt op schijf gecachet, en de browser van een
+bezoeker praat nooit met wie dan ook behalve deze site.
 
 ## In beeld
 

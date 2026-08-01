@@ -480,4 +480,10 @@ return [
     'trip.globe_draft'      => 'Status is niet "published": bezoekers zien deze reis nergens, ook niet op de wereldbol.',
     'trip.globe_private'    => 'Zichtbaarheid staat op "private": alleen jij en redacteuren zien deze reis.',
     'step.no_coordinates'   => 'geen coördinaten',
+
+    'step.geocode_button'    => 'Zoek coördinaten',
+    'step.geocode_hint'      => 'Typ een plaatsnaam — "Rotterdam", "Edinburgh" — en de coördinaten worden opgezocht. Leeg gelaten? Dan gebeurt dat vanzelf bij het opslaan.',
+    'step.geocode_throttled' => 'Even geduld: te veel zoekopdrachten achter elkaar. Probeer het over :seconds seconden opnieuw.',
+    'js.geocode.searching'   => 'Zoeken…',
+    'js.geocode.none'        => 'Geen plaats gevonden met deze naam.',
 ];

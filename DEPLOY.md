@@ -209,10 +209,14 @@ Meld je aan op `https://jouwdomein/login` en loop dit af:
 Zet dan een testreis met een foto op en controleer of de miniaturen verschijnen.
 
 > **Een reis verschijnt pas op de wereldbol als minstens één stop coördinaten
-> heeft.** Vul bij elke stop de breedte- en lengtegraad in — plak gerust
-> "63.985, -22.605" (zoals een kaart-app het kopieert) in het eerste veld, het
-> paar wordt vanzelf gesplitst. De zijbalk van het reis-bewerkscherm laat zien
-> hoeveel stops op de bol staan en waarschuwt als dat er nul zijn.
+> heeft.** Die hoef je niet te kennen: vul bij *Locatie* alleen de plaatsnaam
+> in — "Rotterdam", "Edinburgh" — en de coördinaten worden bij het opslaan
+> automatisch opgezocht (server-side, via OpenStreetMaps Nominatim, met
+> cache). De knop *Zoek coördinaten* naast het veld toont de kandidaten
+> vooraf. Handmatig kan ook: plak gerust "63.985, -22.605" (zoals een
+> kaart-app het kopieert) in het eerste coördinatenveld, het paar wordt
+> vanzelf gesplitst. De zijbalk van het reis-bewerkscherm laat zien hoeveel
+> stops op de bol staan en waarschuwt als dat er nul zijn.
 Blijft een foto leeg, kijk dan bij *Onderhoud* of GD er is; zonder die extensie
 worden er geen varianten gemaakt.
 
@@ -292,6 +296,12 @@ is gebouwd of de bestanden een nieuwe wijzigingsdatum hebben.
 Kijk in de console van de browser. Ontbreekt `assets/data/globe-land-110m.png`,
 dan is de map `assets/data/` niet meegeüpload — sommige FTP-programma's slaan
 mappen zonder tekstbestanden over.
+
+**Een plaatsnaam krijgt geen coördinaten.**
+De server kon nominatim.openstreetmap.org niet bereiken (uitgaande HTTPS) of
+de dienst kende de naam niet. Probeer de knop *Zoek coördinaten* naast het
+locatieveld: die toont wat er wel gevonden wordt. Een stop zonder coördinaten
+opnieuw opslaan met een (aangepaste) plaatsnaam probeert het gewoon nog eens.
 
 **De site blijft naar /install verwijzen terwijl alles al is ingericht.**
 De vergrendeling kon niet worden geschreven: controleer of `storage/cache/`
