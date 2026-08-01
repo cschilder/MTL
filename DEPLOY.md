@@ -216,7 +216,8 @@ Zet dan een testreis met een foto op en controleer of de miniaturen verschijnen.
 > vanzelf. Voor een reis die al bestaat: open de reis in het beheer en klik
 > in de zijbalk onder *Wereldbol* op **Zoek coördinaten voor alle stops** —
 > elke stop zonder coördinaten krijgt zijn plek uit zijn foto's, locatie of
-> titel. Hetzelfde kan voor alles tegelijk op de shell:
+> titel. Hetzelfde kan voor alles tegelijk onder *Beheer → Onderhoud* (dat
+> meldt ook of de server Nominatim kan bereiken) of op de shell:
 > `php -q bin/console.php geocode:backfill`. Handmatig kan ook nog steeds:
 > plak "63.985, -22.605" in het eerste coördinatenveld en het paar wordt
 > vanzelf gesplitst.

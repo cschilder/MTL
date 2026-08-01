@@ -245,6 +245,7 @@ export class Globe {
             sides: createBuffer(gl, ribbon.sides),
             progress: createBuffer(gl, ribbon.progress),
             times: createBuffer(gl, ribbon.times),
+            arcs: createBuffer(gl, ribbon.arcs),
           },
         };
       })
@@ -256,6 +257,7 @@ export class Globe {
       colours: gl.createBuffer(),
       sizes: gl.createBuffer(),
       indexes: gl.createBuffer(),
+      uvOrigins: gl.createBuffer(),
     };
 
     this.stemBuffers = {
@@ -265,6 +267,95 @@ export class Globe {
 
     this.rebuildMarkers();
     this.updateTimelineBounds();
+
+    // The photo previews arrive after the first frame: the globe draws with
+    // plain discs immediately and swaps them for thumbnails when the atlas is
+    // ready, so a slow photo never delays the planet.
+    this.buildThumbAtlas().catch((error) => console.warn('Globe thumbnails skipped', error));
+  }
+
+  /**
+   * Packs every stop's thumbnail into one texture atlas.
+   *
+   * One texture rather than one per stop: markers are drawn in a single call,
+   * and a call per photo would defeat that. Failures are simply skipped — a
+   * stop whose photo cannot load keeps its disc.
+   */
+  async buildThumbAtlas() {
+    const urls = [];
+    const cellByUrl = new Map();
+
+    for (const stop of this.stops) {
+      if (stop.thumb && !cellByUrl.has(stop.thumb) && urls.length < 256) {
+        cellByUrl.set(stop.thumb, urls.length);
+        urls.push(stop.thumb);
+      }
+    }
+
+    if (urls.length === 0) return;
+
+    const cellPixels = 64;
+    const columns = urls.length > 64 ? 16 : 8;
+    const atlasPixels = columns * cellPixels;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = atlasPixels;
+    canvas.height = atlasPixels;
+
+    const context = canvas.getContext('2d');
+    const loaded = await Promise.allSettled(urls.map((url) => loadImage(url)));
+
+    // stop.id → the UV origin of its cell. Only successfully drawn photos are
+    // entered, so a failed load falls back to the disc by absence.
+    this.thumbOrigins = new Map();
+
+    loaded.forEach((result, index) => {
+      if (result.status !== 'fulfilled') return;
+
+      const image = result.value;
+      const x = (index % columns) * cellPixels;
+      const y = Math.floor(index / columns) * cellPixels;
+
+      // Cover-crop into the square cell, clipped so a wide photo cannot bleed
+      // into its neighbour's cell.
+      const scale = Math.max(cellPixels / image.width, cellPixels / image.height);
+
+      context.save();
+      context.beginPath();
+      context.rect(x, y, cellPixels, cellPixels);
+      context.clip();
+      context.drawImage(
+        image,
+        x + (cellPixels - image.width * scale) / 2,
+        y + (cellPixels - image.height * scale) / 2,
+        image.width * scale,
+        image.height * scale,
+      );
+      context.restore();
+
+      for (const stop of this.stops) {
+        if (stop.thumb === urls[index]) {
+          this.thumbOrigins.set(stop.id, [x / atlasPixels, y / atlasPixels]);
+        }
+      }
+    });
+
+    if (this.thumbOrigins.size === 0) return;
+
+    const gl = this.gl;
+
+    this.thumbAtlas = gl.createTexture();
+    this.thumbCell = cellPixels / atlasPixels;
+
+    gl.bindTexture(gl.TEXTURE_2D, this.thumbAtlas);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    this.rebuildMarkers();
   }
 
   /**
@@ -290,14 +381,21 @@ export class Globe {
       const value = values[index];
       const normalised = Number.isFinite(value) ? (value - minimum) / span : 0;
 
+      // In the plain view a stop with a photo is drawn as a round preview of
+      // it. The data layers keep the coloured discs: a thumbnail cannot also
+      // read as a measurement.
+      const uvOrigin = this.layer === 'none' ? this.thumbOrigins?.get(stop.id) ?? null : null;
+
       markers.push({
         lat: stop.lat,
         lon: stop.lon,
         colour: this.layer === 'none' ? stop.colour : rampColour(RAMPS[this.layer] ?? RAMPS.photos, normalised),
         // A floor on the size keeps a stop with no data for the current layer
-        // clickable rather than invisible.
-        size: (0.018 + normalised * 0.022) * (this.config.markerScale ?? 1),
+        // clickable rather than invisible — and a photo preview needs room to
+        // be recognisable at all.
+        size: (uvOrigin ? 0.052 : 0.018 + normalised * 0.022) * (this.config.markerScale ?? 1),
         elevation: this.layer === 'none' ? 0 : normalised * 0.18,
+        uvOrigin,
         stop,
       });
 
@@ -313,6 +411,7 @@ export class Globe {
     updateBuffer(gl, this.markerBuffers.colours, geometry.colours);
     updateBuffer(gl, this.markerBuffers.sizes, geometry.sizes);
     updateBuffer(gl, this.markerBuffers.indexes, geometry.indexes);
+    updateBuffer(gl, this.markerBuffers.uvOrigins, geometry.uvOrigins);
 
     this.markerCount = geometry.count;
 
@@ -915,6 +1014,7 @@ export class Globe {
       bindAttribute(gl, attributes.aSide, route.buffers.sides, 1);
       bindAttribute(gl, attributes.aProgress, route.buffers.progress, 1);
       bindAttribute(gl, attributes.aTime, route.buffers.times, 1);
+      bindAttribute(gl, attributes.aArc, route.buffers.arcs, 1);
 
       gl.uniform3fv(uniforms.uColor, route.colour);
       gl.uniform1f(uniforms.uOpacity, 0.85);
@@ -926,6 +1026,7 @@ export class Globe {
     disableAttribute(gl, attributes.aSide);
     disableAttribute(gl, attributes.aProgress);
     disableAttribute(gl, attributes.aTime);
+    disableAttribute(gl, attributes.aArc);
   }
 
   drawStems() {
@@ -960,9 +1061,18 @@ export class Globe {
     bindAttribute(gl, attributes.aColor, this.markerBuffers.colours, 3);
     bindAttribute(gl, attributes.aSize, this.markerBuffers.sizes, 1);
     bindAttribute(gl, attributes.aIndex, this.markerBuffers.indexes, 1);
+    bindAttribute(gl, attributes.aUvOrigin, this.markerBuffers.uvOrigins, 2);
 
     gl.uniformMatrix4fv(uniforms.uViewProjection, false, this.matrices.viewProjection);
     gl.uniformMatrix4fv(uniforms.uModel, false, this.matrices.model);
+
+    // Unit 1: unit 0 belongs to the land mask, and rebinding it every frame
+    // would force the sphere pass to set it back.
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.thumbAtlas ?? null);
+    gl.uniform1i(uniforms.uAtlas, 1);
+    gl.uniform1f(uniforms.uCell, this.thumbCell ?? 0);
+    gl.activeTexture(gl.TEXTURE0);
 
     // The camera's right and up axes, read out of the view matrix.
     const view = this.matrices.view;
@@ -982,6 +1092,7 @@ export class Globe {
     disableAttribute(gl, attributes.aColor);
     disableAttribute(gl, attributes.aSize);
     disableAttribute(gl, attributes.aIndex);
+    disableAttribute(gl, attributes.aUvOrigin);
   }
 
   drawAtmosphere() {

@@ -12,11 +12,14 @@ use MTL\Core\Request;
 use MTL\Core\Response;
 use MTL\Http\Controllers\Controller;
 use MTL\Models\Media;
+use MTL\Models\Step;
 use MTL\Models\Tag;
 use MTL\Services\AuditService;
+use MTL\Services\GeocodeService;
 use MTL\Services\MaintenanceService;
 use MTL\Services\MediaService;
 use MTL\Services\SearchService;
+use MTL\Services\StepService;
 
 defined('MTL_APP') || exit;
 
@@ -65,6 +68,11 @@ final class MaintenanceController extends Controller
             'label'       => 'nav.tags',
             'description' => 'Verwijdert labels die nergens meer aan hangen.',
             'slow'        => false,
+        ],
+        'geocode' => [
+            'label'       => 'trip.geocode_all',
+            'description' => 'Zoekt coördinaten voor alle stops die er geen hebben — uit de GPS-gegevens van hun foto\'s, hun locatie of hun titel. Meldt ook of de server Nominatim (OpenStreetMap) kan bereiken. Werkt in stappen van 40 stops.',
+            'slow'        => true,
         ],
         'clear-cache' => [
             'label'       => 'maintenance.clear_cache',
@@ -115,6 +123,7 @@ final class MaintenanceController extends Controller
             'rebuild-media' => $this->rebuildMedia(),
             'purge-trash'   => ['removed' => MediaService::purgeTrash((int) $request->int('days', 30))],
             'prune-tags'    => ['removed' => Tag::pruneUnused()],
+            'geocode'       => $this->geocodeSteps(),
             'clear-cache'   => $this->clearCache(),
             'optimize'      => [
                 'classes' => Autoloader::buildClassmap(),
@@ -176,6 +185,45 @@ final class MaintenanceController extends Controller
             ->count();
 
         return ['rebuilt' => $rebuilt, 'failed' => $failed, 'remaining' => $remaining];
+    }
+
+    /**
+     * Places stops without coordinates, in batches like the media rebuild.
+     *
+     * Also the diagnostic for "no place name ever resolves": the result names
+     * whether Nominatim could be reached at all, which separates "the server
+     * cannot make outbound requests" from "these names are not places".
+     *
+     * @return array<string,int|string>
+     */
+    private function geocodeSteps(): array
+    {
+        @set_time_limit(300);
+
+        $reachable = GeocodeService::reachable();
+
+        $unplaced = static fn () => Step::active()
+            ->whereNull('latitude')
+            ->orderBy('trip_id')
+            ->orderBy('position');
+
+        $placed = 0;
+        $left = 0;
+
+        foreach (Step::fromRows($unplaced()->limit(40)->get()) as $step) {
+            if (StepService::place($step)) {
+                ++$placed;
+            } else {
+                ++$left;
+            }
+        }
+
+        return [
+            'nominatim' => $reachable ? 'bereikbaar' : 'NIET bereikbaar',
+            'placed'    => $placed,
+            'not_found' => $left,
+            'remaining' => $unplaced()->count(),
+        ];
     }
 
     /**

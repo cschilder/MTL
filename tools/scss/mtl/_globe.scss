@@ -108,6 +108,11 @@
   cursor: pointer;
   display: inline-flex;
 
+  // Vanilla gives every button a default outside margin for form layouts;
+  // in this pill the flex gap is the spacing, and the leftover margins are
+  // exactly what pushed the last button (layers) out of the bar on a phone.
+  margin: 0;
+
   // `display` here would otherwise beat the user-agent rule for [hidden], and
   // the VR and timeline buttons are hidden until the browser or the content
   // proves they are usable.
@@ -355,7 +360,20 @@
 
   .mtl-globe__controls {
     inline-size: calc(100vw - 2 * var(--mtl-space-3));
-    justify-content: space-around;
+    justify-content: space-evenly;
+  }
+
+  // Every button must fit inside the pill on a narrow phone: drop the
+  // horizontal padding (the touch-target minimum keeps them tappable) and let
+  // them shrink, or the last button — layers — pokes out past the bar.
+  .mtl-globe__button {
+    flex: 0 1 auto;
+    min-inline-size: var(--mtl-touch);
+    padding: 0;
+  }
+
+  .mtl-globe__separator {
+    display: none;
   }
 
   .mtl-globe__button span {

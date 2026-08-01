@@ -14,14 +14,17 @@
  *                so a cached entry can never be stale — a change is a new URL.
  *   media        cache first, with a cap. Photographs are the bulk of the site
  *                and never change once uploaded.
- *   API          stale while revalidating. The globe draws immediately from
- *                the last payload and quietly updates.
+ *   API          network first, falling back to the cached copy offline.
+ *                This used to be stale-while-revalidate, which quietly served
+ *                the globe the *previous* visit's payload every time — a stop
+ *                given coordinates never appeared until the visit after next,
+ *                which reads as "my trip is not on the globe" on a phone.
  *
  * Bump CACHE_VERSION to discard everything after a deployment that changes the
  * shell.
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 
 const SHELL_CACHE = `mtl-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `mtl-pages-${CACHE_VERSION}`;
@@ -130,7 +133,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.includes('/api/')) {
-    event.respondWith(staleWhileRevalidate(request, DATA_CACHE));
+    event.respondWith(networkFirst(request, DATA_CACHE));
   }
 });
 
@@ -198,23 +201,22 @@ async function cacheFirst(request, cacheName) {
 }
 
 /**
- * Answer from the cache at once, then refresh it in the background.
+ * Fresh data when the network answers, the cached copy when it does not.
  */
-async function staleWhileRevalidate(request, cacheName) {
+async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
 
-  const network = fetch(request)
-    .then((response) => {
-      if (response.ok && response.type === 'basic') {
-        cache.put(request, response.clone());
-      }
+  try {
+    const response = await fetch(request);
 
-      return response;
-    })
-    .catch(() => null);
+    if (response.ok && response.type === 'basic') {
+      cache.put(request, response.clone());
+    }
 
-  return cached || (await network) || Response.error();
+    return response;
+  } catch {
+    return (await cache.match(request)) || Response.error();
+  }
 }
 
 /**

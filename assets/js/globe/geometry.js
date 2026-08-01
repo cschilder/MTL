@@ -208,11 +208,18 @@ export function createGraticule(stepDegrees = 15, radius = 1.0004) {
  */
 export function createRouteRibbon(stops, radius = 1.004) {
   if (stops.length < 2) {
-    return { positions: new Float32Array(0), directions: new Float32Array(0), sides: new Float32Array(0), progress: new Float32Array(0), times: new Float32Array(0), count: 0 };
+    return { positions: new Float32Array(0), directions: new Float32Array(0), sides: new Float32Array(0), progress: new Float32Array(0), times: new Float32Array(0), arcs: new Float32Array(0), count: 0 };
   }
 
   const path = [];
   const times = [];
+
+  // Cumulative angular distance at each path point, in radians. The fragment
+  // shader cuts the ribbon into dashes along this axis; the screen-space
+  // `progress` fraction cannot serve, because equal fractions of a route are
+  // not equal lengths of it.
+  const arcs = [];
+  let travelled = 0;
 
   for (let i = 0; i < stops.length - 1; i += 1) {
     const from = [stops[i].lat, stops[i].lon];
@@ -227,6 +234,7 @@ export function createRouteRibbon(stops, radius = 1.004) {
       const t = s / segments;
 
       path.push(greatCirclePoint(from, to, t, radius, [0, 0, 0]));
+      arcs.push(travelled + arc * t);
 
       // Interpolate the timestamps so the reveal animation moves smoothly
       // along the leg rather than jumping at each stop.
@@ -235,11 +243,14 @@ export function createRouteRibbon(stops, radius = 1.004) {
 
       times.push(timeFrom !== null && timeTo !== null ? timeFrom + (timeTo - timeFrom) * t : (timeFrom ?? timeTo ?? 0));
     }
+
+    travelled += arc;
   }
 
   const last = stops[stops.length - 1];
   path.push(latLonToVector(last.lat, last.lon, radius, [0, 0, 0]));
   times.push(last.t ?? times[times.length - 1] ?? 0);
+  arcs.push(travelled);
 
   const count = path.length;
 
@@ -248,6 +259,7 @@ export function createRouteRibbon(stops, radius = 1.004) {
   const sides = new Float32Array(count * 2);
   const progress = new Float32Array(count * 2);
   const timeAttribute = new Float32Array(count * 2);
+  const arcAttribute = new Float32Array(count * 2);
 
   for (let i = 0; i < count; i += 1) {
     const current = path[i];
@@ -277,6 +289,7 @@ export function createRouteRibbon(stops, radius = 1.004) {
       sides[v] = side === 0 ? -1 : 1;
       progress[v] = fraction;
       timeAttribute[v] = times[i];
+      arcAttribute[v] = arcs[i];
     }
   }
 
@@ -286,6 +299,7 @@ export function createRouteRibbon(stops, radius = 1.004) {
     sides,
     progress,
     times: timeAttribute,
+    arcs: arcAttribute,
     count: count * 2,
   };
 }
@@ -308,6 +322,11 @@ export function createMarkerGeometry(markers, radius = 1.008) {
   const colours = new Float32Array(count * 6 * 3);
   const sizes = new Float32Array(count * 6);
   const indexes = new Float32Array(count * 6);
+
+  // Where this marker's photo lives in the thumbnail atlas, as the UV of the
+  // cell's top-left corner. (-1, -1) means "no photo": the shader draws the
+  // plain disc instead.
+  const uvOrigins = new Float32Array(count * 6 * 2);
 
   // Two triangles, as corner offsets in the marker's own square.
   const quad = [
@@ -340,10 +359,13 @@ export function createMarkerGeometry(markers, radius = 1.008) {
 
       sizes[index] = marker.size;
       indexes[index] = m;
+
+      uvOrigins[index * 2] = marker.uvOrigin ? marker.uvOrigin[0] : -1;
+      uvOrigins[index * 2 + 1] = marker.uvOrigin ? marker.uvOrigin[1] : -1;
     }
   }
 
-  return { centres, corners, colours, sizes, indexes, count: count * 6 };
+  return { centres, corners, colours, sizes, indexes, uvOrigins, count: count * 6 };
 }
 
 /**

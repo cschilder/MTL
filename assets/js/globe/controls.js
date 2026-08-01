@@ -274,7 +274,11 @@ export class OrbitControls {
   /** Points the camera at a place, without animating. */
   lookAt(latitude, longitude, distance = null) {
     this.pitch = latitude * DEGREES;
-    this.yaw = -longitude * DEGREES;
+    // A surface point at longitude L sits at (sin L, ·, cos L) and the camera
+    // at yaw Y looks at longitude Y, so the yaw *is* the longitude. This used
+    // to negate it, which flew every "show on the globe" to the mirrored
+    // meridian — Iceland's stops landed the camera over Scandinavia.
+    this.yaw = longitude * DEGREES;
 
     if (distance !== null) {
       this.distance = Math.max(this.minDistance, Math.min(this.maxDistance, distance));
@@ -293,7 +297,7 @@ export class OrbitControls {
     const startPitch = this.pitch;
     const startDistance = this.distance;
 
-    let targetYaw = -latitudeSafe(longitude) * DEGREES;
+    let targetYaw = latitudeSafe(longitude) * DEGREES;
 
     // Take the short way round rather than unwinding the long way.
     const twoPi = Math.PI * 2;

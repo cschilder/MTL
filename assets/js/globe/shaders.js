@@ -162,6 +162,7 @@ attribute vec3 aDirection;
 attribute float aSide;
 attribute float aProgress;
 attribute float aTime;
+attribute float aArc;
 
 uniform mat4 uViewProjection;
 uniform mat4 uModel;
@@ -174,6 +175,7 @@ uniform float uUseTime;  // 1 when the timeline is driving the reveal
 varying float vProgress;
 varying float vSide;
 varying float vVisible;
+varying float vArc;
 
 void main() {
   vec4 world = uModel * vec4(aPosition, 1.0);
@@ -198,6 +200,7 @@ void main() {
 
   vProgress = aProgress;
   vSide = aSide;
+  vArc = aArc;
 
   vVisible = uUseTime > 0.5
     ? step(aTime, uNow)
@@ -216,6 +219,7 @@ uniform float uOpacity;
 varying float vProgress;
 varying float vSide;
 varying float vVisible;
+varying float vArc;
 
 void main() {
   if (vVisible < 0.5) discard;
@@ -224,12 +228,28 @@ void main() {
   // available without multisampling the whole pass.
   float edge = 1.0 - smoothstep(0.55, 1.0, abs(vSide));
 
-  gl_FragColor = vec4(uColor, uOpacity * edge);
+  // A dashed travel line, in the itinerary-on-a-map tradition. The pattern is
+  // cut along the accumulated arc so every dash is the same length on the
+  // ground: one cycle per 1.6 degrees of arc, just over half of it drawn.
+  // Cheap smoothsteps on both dash edges keep the cuts from shimmering.
+  float cycle = fract(vArc / 0.028);
+  float dash = smoothstep(0.0, 0.10, cycle) * (1.0 - smoothstep(0.55, 0.65, cycle));
+
+  float alpha = uOpacity * edge * dash;
+
+  if (alpha < 0.01) discard;
+
+  gl_FragColor = vec4(uColor, alpha);
 }
 `;
 
 /**
- * Stop markers: a screen-facing disc with a ring, expanded from a point.
+ * Stop markers.
+ *
+ * Two appearances from one shader: a stop with a photo becomes a small round
+ * preview ringed in its trip's colour — the Polarsteps idiom — and a stop
+ * without one stays the plain disc-and-ring. Which one is chosen per marker
+ * by its atlas coordinate: (-1, -1) means "no photo".
  */
 export const markerVertex = `
 precision highp float;
@@ -239,6 +259,7 @@ attribute vec2 aCorner;
 attribute vec3 aColor;
 attribute float aSize;
 attribute float aIndex;
+attribute vec2 aUvOrigin;
 
 uniform mat4 uViewProjection;
 uniform mat4 uModel;
@@ -253,6 +274,7 @@ varying vec2 vCorner;
 varying vec3 vColor;
 varying float vFacing;
 varying float vHighlight;
+varying vec2 vUvOrigin;
 
 void main() {
   vec4 centre = uModel * vec4(aCentre, 1.0);
@@ -275,6 +297,7 @@ void main() {
 
   vCorner = aCorner;
   vColor = aColor;
+  vUvOrigin = aUvOrigin;
 
   gl_Position = uViewProjection * vec4(centre.xyz + offset, 1.0);
 }
@@ -283,10 +306,14 @@ void main() {
 export const markerFragment = `
 precision highp float;
 
+uniform sampler2D uAtlas;
+uniform float uCell;   // one atlas cell, in UV units
+
 varying vec2 vCorner;
 varying vec3 vColor;
 varying float vFacing;
 varying float vHighlight;
+varying vec2 vUvOrigin;
 
 void main() {
   // A marker on the far side of the globe is behind the sphere and would be
@@ -297,6 +324,32 @@ void main() {
   float distance = length(vCorner);
 
   if (distance > 1.0) discard;
+
+  float fade = 0.35 + 0.65 * smoothstep(0.02, 0.3, vFacing);
+
+  // Sampled unconditionally: a texture fetch inside a branch has undefined
+  // derivatives. The atlas has no mipmaps, but drivers are not to be tempted.
+  vec2 uv = vUvOrigin + vec2(vCorner.x * 0.5 + 0.5, 0.5 - vCorner.y * 0.5) * uCell;
+  vec3 photo = texture2D(uAtlas, uv).rgb;
+
+  if (vUvOrigin.x >= 0.0) {
+    // The photo preview: the picture inside, a ring of the trip's colour
+    // around it, and a hairline of white between the two so the ring reads
+    // against any photograph.
+    float picture = 1.0 - smoothstep(0.74, 0.80, distance);
+    float halo = smoothstep(0.74, 0.80, distance) * (1.0 - smoothstep(0.82, 0.86, distance));
+    float ring = smoothstep(0.82, 0.86, distance) * (1.0 - smoothstep(0.94, 1.0, distance));
+
+    vec3 ringColor = mix(vColor, vec3(1.0), vHighlight * 0.25);
+    vec3 color = photo * picture + vec3(1.0) * halo + ringColor * ring;
+
+    float alpha = max(picture, max(halo, ring));
+
+    if (alpha < 0.01) discard;
+
+    gl_FragColor = vec4(color, alpha * fade);
+    return;
+  }
 
   // Concentric bands: a filled centre, a gap, then a ring.
   float core = 1.0 - smoothstep(0.42, 0.52, distance);
@@ -310,7 +363,7 @@ void main() {
   // same colour running underneath it.
   vec3 color = mix(vColor, vec3(1.0), core * 0.35 + vHighlight * 0.2);
 
-  gl_FragColor = vec4(color, alpha * (0.35 + 0.65 * smoothstep(0.02, 0.3, vFacing)));
+  gl_FragColor = vec4(color, alpha * fade);
 }
 `;
 

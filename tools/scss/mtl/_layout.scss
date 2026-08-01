@@ -112,6 +112,36 @@ body {
   flex-shrink: 0;
   gap: var(--mtl-space-2);
   margin-inline-start: auto;
+
+  // Vanilla's search box positions its input absolutely against the form and
+  // gives the form no width of its own, so the input sprawled leftwards over
+  // the menu and the site title — most visibly on a phone. A real width on
+  // the form is what the absolute input needs to stay inside its own box.
+  .p-search-box {
+    flex: 0 1 auto;
+    inline-size: 13rem;
+    margin-block-end: 0;
+  }
+}
+
+// A phone-width header cannot carry the site title, three labelled links and
+// a search box side by side. The links collapse to their icons (each is still
+// its own touch target with an accessible name from the label span) and the
+// brand keeps only its mark; the title is one tap away on the globe itself.
+@media (max-width: 46rem) {
+  .mtl-header__actions .p-search-box {
+    inline-size: 7.5rem;
+  }
+
+  .mtl-header__brand > span,
+  .mtl-header__nav .mtl-header__link span {
+    block-size: 1px;
+    clip-path: inset(50%);
+    inline-size: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+  }
 }
 
 // -----------------------------------------------------------------------------

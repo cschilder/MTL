@@ -129,6 +129,18 @@ final class GeocodeService
         return self::search($query, $language, 1)[0] ?? null;
     }
 
+    /**
+     * Whether this server can reach the geocoding service at all.
+     *
+     * Deliberately uncached and cache-bypassing: this exists for the
+     * maintenance screen to answer "why does no place name resolve?", and a
+     * remembered answer would be exactly the thing it cannot be.
+     */
+    public static function reachable(): bool
+    {
+        return self::fetch('https://nominatim.openstreetmap.org/status') !== null;
+    }
+
     // -------------------------------------------------------------------------
 
     private static function fetch(string $url): ?string
