@@ -472,4 +472,12 @@ return [
     'install.done_next'      => 'Goede eerste stappen: taal en tijdzone onder Instellingen, en je eerste reis aanmaken.',
     'install.done_admin'     => 'Naar het beheer',
     'install.done_site'      => 'Bekijk de site',
+
+    'trip.globe'            => 'Wereldbol',
+    'trip.globe_placed'     => ':placed van de :total stops heeft coördinaten en staat op de wereldbol.',
+    'trip.globe_none'       => 'Nog geen enkele stop heeft coördinaten; deze reis verschijnt daarom niet op de wereldbol. Vul bij elke stop de breedte- en lengtegraad in — "63.985, -22.605" plakken in het eerste veld splitst het paar vanzelf.',
+    'trip.globe_none_short' => 'Deze stop staat niet op de wereldbol.',
+    'trip.globe_draft'      => 'Status is niet "published": bezoekers zien deze reis nergens, ook niet op de wereldbol.',
+    'trip.globe_private'    => 'Zichtbaarheid staat op "private": alleen jij en redacteuren zien deze reis.',
+    'step.no_coordinates'   => 'geen coördinaten',
 ];

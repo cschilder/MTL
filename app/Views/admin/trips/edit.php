@@ -108,6 +108,40 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
                 <p class="p-form-help-text"><?= e(__('trip.share_hint')) ?></p>
             </fieldset>
 
+            <?php if (!$isNew): ?>
+                <?php
+                // What the globe will actually do with this trip, spelled out.
+                // The globe silently skips a trip whose stops have no
+                // coordinates, and "I added a trip but the globe is empty" is
+                // the support question that taught us to say so here.
+                $placed = 0;
+                foreach ($steps as $listStep) {
+                    if ($listStep->latitude() !== null && $listStep->longitude() !== null) {
+                        $placed++;
+                    }
+                }
+                ?>
+                <fieldset class="mtl-form__section">
+                    <legend><?= e(__('trip.globe')) ?></legend>
+
+                    <?php if ($steps !== [] && $placed === 0): ?>
+                        <div class="p-notification--caution">
+                            <div class="p-notification__content">
+                                <p class="p-notification__message"><?= e(__('trip.globe_none')) ?></p>
+                            </div>
+                        </div>
+                    <?php elseif ($steps !== []): ?>
+                        <p><?= e(__('trip.globe_placed', ['placed' => $placed, 'total' => count($steps)])) ?></p>
+                    <?php endif; ?>
+
+                    <?php if ($trip->string('status') !== 'published'): ?>
+                        <p class="mtl-muted"><?= e(__('trip.globe_draft')) ?></p>
+                    <?php elseif ($trip->string('visibility') === 'private'): ?>
+                        <p class="mtl-muted"><?= e(__('trip.globe_private')) ?></p>
+                    <?php endif; ?>
+                </fieldset>
+            <?php endif; ?>
+
             <fieldset class="mtl-form__section">
                 <legend><?= e(__('trip.start_date')) ?></legend>
 
@@ -213,6 +247,11 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
                                     · <?= e($step->occurredLabel()) ?>
                                 <?php endif; ?>
                             </span>
+                            <?php if ($step->latitude() === null || $step->longitude() === null): ?>
+                                <span class="mtl-status mtl-status--draft" title="<?= e(__('trip.globe_none_short')) ?>">
+                                    <?= e(__('step.no_coordinates')) ?>
+                                </span>
+                            <?php endif; ?>
                         </span>
 
                         <span class="mtl-status mtl-status--<?= e($step->string('status')) ?>">

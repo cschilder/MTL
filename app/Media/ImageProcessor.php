@@ -183,7 +183,12 @@ final class ImageProcessor
                 ];
 
                 if (!$previousIsSource) {
-                    imagedestroy($previous);
+                    // Nulling the variable frees the GdImage right here, which
+                    // matters inside this loop: four variants of a large photo
+                    // would otherwise coexist. Not imagedestroy() — that has
+                    // been a no-op since GD images became objects, and PHP 8.5
+                    // deprecates calling it.
+                    $previous = null;
                 }
 
                 $previous = $resized;
@@ -191,7 +196,7 @@ final class ImageProcessor
             }
 
             if (!$previousIsSource) {
-                imagedestroy($previous);
+                $previous = null;
             }
 
             // Variant order in the stored JSON should be smallest first, which
@@ -205,7 +210,7 @@ final class ImageProcessor
 
             return $ordered;
         } finally {
-            imagedestroy($source);
+            $source = null;
         }
     }
 
@@ -242,11 +247,11 @@ final class ImageProcessor
             imagecopyresampled($tiny, $source, 0, 0, 0, 0, 1, 1, imagesx($source), imagesy($source));
 
             $rgb = imagecolorat($tiny, 0, 0);
-            imagedestroy($tiny);
+            $tiny = null;
 
             return sprintf('#%02x%02x%02x', ($rgb >> 16) & 0xFF, ($rgb >> 8) & 0xFF, $rgb & 0xFF);
         } finally {
-            imagedestroy($source);
+            $source = null;
         }
     }
 
@@ -282,7 +287,7 @@ final class ImageProcessor
             $temporary = tempnam(sys_get_temp_dir(), 'mtl');
 
             if ($temporary === false) {
-                imagedestroy($tiny);
+                $tiny = null;
 
                 return '';
             }
@@ -290,7 +295,7 @@ final class ImageProcessor
             // JPEG at low quality: the result is blurred by CSS anyway, and
             // WebP's header overhead dominates at this size.
             imagejpeg($tiny, $temporary, 40);
-            imagedestroy($tiny);
+            $tiny = null;
 
             $bytes = (string) file_get_contents($temporary);
             @unlink($temporary);
@@ -301,7 +306,7 @@ final class ImageProcessor
 
             return 'data:image/jpeg;base64,' . base64_encode($bytes);
         } finally {
-            imagedestroy($source);
+            $source = null;
         }
     }
 
@@ -363,7 +368,7 @@ final class ImageProcessor
             $rotated = imagerotate($image, (float) $rotation, 0);
 
             if ($rotated !== false) {
-                imagedestroy($image);
+                $image = null;
                 $result = $rotated;
             }
         }

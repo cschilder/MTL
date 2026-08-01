@@ -367,7 +367,7 @@ final class ExifReader
         // Re-encoded at high quality: this runs on the stored original, so the
         // loss has to be small enough not to matter.
         $written = imagejpeg($image, $file, 95);
-        imagedestroy($image);
+        $image = null;
 
         return $written;
     }

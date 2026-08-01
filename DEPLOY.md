@@ -207,6 +207,12 @@ Meld je aan op `https://jouwdomein/login` en loop dit af:
 ![De onderhoudspagina in het beheer, met de servercontroles en de opruimtaken.](docs/screenshots/admin-maintenance.png)
 
 Zet dan een testreis met een foto op en controleer of de miniaturen verschijnen.
+
+> **Een reis verschijnt pas op de wereldbol als minstens één stop coördinaten
+> heeft.** Vul bij elke stop de breedte- en lengtegraad in — plak gerust
+> "63.985, -22.605" (zoals een kaart-app het kopieert) in het eerste veld, het
+> paar wordt vanzelf gesplitst. De zijbalk van het reis-bewerkscherm laat zien
+> hoeveel stops op de bol staan en waarschuwt als dat er nul zijn.
 Blijft een foto leeg, kijk dan bij *Onderhoud* of GD er is; zonder die extensie
 worden er geen varianten gemaakt.
 

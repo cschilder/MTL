@@ -471,4 +471,12 @@ return [
     'install.done_next'      => 'Good first stops: set the language and timezone under Settings, and create your first trip.',
     'install.done_admin'     => 'Open the management area',
     'install.done_site'      => 'View the site',
+
+    'trip.globe'            => 'Globe',
+    'trip.globe_placed'     => ':placed of :total stops have coordinates and appear on the globe.',
+    'trip.globe_none'       => 'No stop has coordinates yet, so this trip does not appear on the globe. Fill in latitude and longitude on each stop — pasting "63.985, -22.605" into the first field splits the pair automatically.',
+    'trip.globe_none_short' => 'This stop does not appear on the globe.',
+    'trip.globe_draft'      => 'Status is not "published": visitors do not see this trip anywhere, the globe included.',
+    'trip.globe_private'    => 'Visibility is "private": only you and editors see this trip.',
+    'step.no_coordinates'   => 'no coordinates',
 ];

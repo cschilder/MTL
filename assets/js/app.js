@@ -242,6 +242,36 @@ async function bootSortables() {
   document.querySelectorAll('[data-sortable]').forEach((element) => new Sortable(element).init());
 }
 
+/**
+ * Lets "63.985, -22.605" — the form every map app copies — be pasted straight
+ * into the latitude field: the pair is split over both fields. Without this,
+ * placing a stop means editing the clipboard by hand twice per stop, and stops
+ * without coordinates never appear on the globe.
+ */
+function enhanceCoordinatePaste() {
+  const latitude = document.querySelector('input[name="latitude"]');
+  const longitude = document.querySelector('input[name="longitude"]');
+
+  if (!latitude || !longitude) return;
+
+  latitude.addEventListener('paste', (event) => {
+    const text = event.clipboardData?.getData('text') ?? '';
+    const match = /^\s*(-?\d+(?:[.,]\d+)?)[,;\s]+(-?\d+(?:[.,]\d+)?)\s*$/.exec(text);
+
+    if (!match) return;
+
+    event.preventDefault();
+
+    // A decimal comma only appears when the pair is separated by something
+    // else; after splitting, normalise it for the number input.
+    latitude.value = match[1].replace(',', '.');
+    longitude.value = match[2].replace(',', '.');
+
+    latitude.dispatchEvent(new Event('input', { bubbles: true }));
+    longitude.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
 // ---------------------------------------------------------------------------
 
 function boot() {
@@ -250,6 +280,7 @@ function boot() {
   enhanceCopyButtons();
   enhanceThemeToggle();
   enhanceAdminDrawer();
+  enhanceCoordinatePaste();
 
   detectImmersiveDevice();
   registerServiceWorker();
