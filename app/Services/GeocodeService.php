@@ -40,6 +40,14 @@ final class GeocodeService
     /** When this process last talked to the real service, in microseconds. */
     private static float $lastNetworkCall = 0.0;
 
+    /**
+     * Whether the most recent search failed to reach the service at all.
+     *
+     * "Leith does not exist" and "the server could not ask" are different
+     * answers, and the search box must not present the second as the first.
+     */
+    private static bool $lastLookupFailed = false;
+
     /** Test seam: replaces the HTTP fetch with a canned response. */
     public static function swapTransport(?callable $transport): void
     {
@@ -53,6 +61,8 @@ final class GeocodeService
      */
     public static function search(string $query, ?string $language = null, int $limit = 5): array
     {
+        self::$lastLookupFailed = false;
+
         $query = trim(preg_replace('/\s+/', ' ', $query) ?? '');
 
         if (mb_strlen($query, 'UTF-8') < 2) {
@@ -82,7 +92,10 @@ final class GeocodeService
 
         if ($body === null) {
             // Unreachable is not "no results": nothing is cached, so the next
-            // attempt tries the network again.
+            // attempt tries the network again — and the caller can tell the
+            // difference through lastLookupFailed().
+            self::$lastLookupFailed = true;
+
             return [];
         }
 
@@ -127,6 +140,12 @@ final class GeocodeService
     public static function best(string $query, ?string $language = null): ?array
     {
         return self::search($query, $language, 1)[0] ?? null;
+    }
+
+    /** Whether the most recent search() failed to reach the service. */
+    public static function lastLookupFailed(): bool
+    {
+        return self::$lastLookupFailed;
     }
 
     /**

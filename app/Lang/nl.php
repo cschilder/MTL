@@ -492,6 +492,7 @@ return [
     'step.geocode_button'    => 'Zoek coördinaten',
     'step.geocode_hint'      => 'Typ een plaatsnaam — "Rotterdam", "Edinburgh" — en de coördinaten worden opgezocht. Leeg gelaten? Dan gebeurt dat vanzelf bij het opslaan.',
     'step.geocode_throttled' => 'Even geduld: te veel zoekopdrachten achter elkaar. Probeer het over :seconds seconden opnieuw.',
+    'step.geocode_unreachable' => 'De kaartdienst (Nominatim) was niet bereikbaar vanaf de server — de plaats kan dus best bestaan. Controleer de verbinding onder Beheer → Onderhoud, of vul de coördinaten handmatig in.',
     'js.geocode.searching'   => 'Zoeken…',
     'js.geocode.none'        => 'Geen plaats gevonden met deze naam.',
 ];

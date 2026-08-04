@@ -131,10 +131,23 @@ final class GeocodeTest extends TestCase
 
         $this->assertSame([], GeocodeService::search('Rotterdam'));
 
+        // Unreachable announces itself: "the server could not ask" must never
+        // be dressed up as "no such place".
+        $this->assertTrue(GeocodeService::lastLookupFailed());
+
         // The network comes back: the same query must try again and succeed.
         GeocodeService::swapTransport(static fn (): string => self::ROTTERDAM);
 
         $this->assertCount(1, GeocodeService::search('Rotterdam'));
+        $this->assertFalse(GeocodeService::lastLookupFailed());
+    }
+
+    public function testAGenuinelyUnknownPlaceIsNotAFailure(): void
+    {
+        GeocodeService::swapTransport(static fn (): string => '[]');
+
+        $this->assertSame([], GeocodeService::search('Atlantis'));
+        $this->assertFalse(GeocodeService::lastLookupFailed());
     }
 
     public function testAnEmptyAnswerIsCachedToo(): void

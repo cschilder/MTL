@@ -491,6 +491,7 @@ return [
     'step.geocode_button'    => 'Find coordinates',
     'step.geocode_hint'      => 'Type a place name — "Rotterdam", "Edinburgh" — and the coordinates are looked up. Left empty? That happens automatically on save.',
     'step.geocode_throttled' => 'Hold on: too many searches in a row. Try again in :seconds seconds.',
+    'step.geocode_unreachable' => 'The map service (Nominatim) could not be reached from the server — the place may well exist. Check the connection under Management → Maintenance, or fill in the coordinates by hand.',
     'js.geocode.searching'   => 'Searching…',
     'js.geocode.none'        => 'No place found by that name.',
 ];

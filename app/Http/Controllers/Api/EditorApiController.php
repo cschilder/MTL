@@ -181,6 +181,8 @@ final class EditorApiController extends Controller
 
         RateLimiter::hit($bucket, 30, 60);
 
+        $found = 0;
+
         foreach (GeocodeService::search($query, Translator::locale()) as $hit) {
             $results[] = [
                 'name'      => $hit['name'],
@@ -190,6 +192,18 @@ final class EditorApiController extends Controller
                 'longitude' => $hit['longitude'],
                 'source'    => 'geocoder',
             ];
+            $found++;
+        }
+
+        // "The server could not ask" must never be dressed up as "no such
+        // place" — that difference is exactly what a hosting problem looks
+        // like from the outside, and it sent one user hunting for
+        // coordinates of a place that resolves fine.
+        if ($found === 0 && GeocodeService::lastLookupFailed()) {
+            return Response::json([
+                'results' => $results,
+                'error'   => __('step.geocode_unreachable'),
+            ]);
         }
 
         return Response::json(['results' => $results]);
