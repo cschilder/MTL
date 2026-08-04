@@ -60,7 +60,10 @@ $cover = $this->get('cover');
     <?php endif; ?>
 
     <?php if ($trip->countryCodes() !== []): ?>
-        <span><?= icon('globe', 16) ?> <?= e(implode(', ', $trip->countryCodes())) ?></span>
+        <span><?= icon('globe', 16) ?> <?= e(implode(', ', array_map(
+            static fn (string $code): string => MTL\Support\Countries::name($code),
+            $trip->countryCodes()
+        ))) ?></span>
     <?php endif; ?>
 
     <?php if ($trip->int('media_count') > 0): ?>

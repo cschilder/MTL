@@ -194,9 +194,25 @@ $localDate = static function (string $stored): string {
                 <div class="mtl-form__row">
                     <div>
                         <label for="country_code"><?= e(__('step.country')) ?></label>
-                        <input type="text" id="country_code" name="country_code" maxlength="2"
-                               placeholder="IS" style="text-transform: uppercase;"
-                               value="<?= e((string) $value('country_code')) ?>">
+                        <?php
+                        // A list of names, not a box for a code: nobody should
+                        // have to know that Iceland is "IS". The stored value
+                        // stays the ISO code, which is what the geocoder and
+                        // the globe statistics speak.
+                        $currentCountry = strtoupper((string) $value('country_code'));
+                        $countries = MTL\Support\Countries::all();
+                        ?>
+                        <select id="country_code" name="country_code">
+                            <option value=""><?= e(__('app.optional')) ?></option>
+                            <?php if ($currentCountry !== '' && !isset($countries[$currentCountry])): ?>
+                                <option value="<?= e($currentCountry) ?>" selected><?= e($currentCountry) ?></option>
+                            <?php endif; ?>
+                            <?php foreach ($countries as $code => $countryName): ?>
+                                <option value="<?= e($code) ?>" <?= $code === $currentCountry ? 'selected' : '' ?>>
+                                    <?= e($countryName) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div>
                         <label for="altitude_m"><?= e(__('step.altitude')) ?></label>
