@@ -50,6 +50,12 @@ $this->layout('layouts/app');
             <a href="<?= e(path('/password/forgot')) ?>"><?= e(__('auth.forgot')) ?></a>
         </div>
     </form>
+
+    <?php if (MTL\Services\RegistrationService::isOpen()): ?>
+        <p style="margin-block-start: var(--mtl-space-4);">
+            <a href="<?= e(path('/register')) ?>"><?= e(__('auth.register_link')) ?></a>
+        </p>
+    <?php endif; ?>
 </div>
 
 <?php $this->end() ?>

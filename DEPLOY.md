@@ -224,6 +224,22 @@ Zet dan een testreis met een foto op en controleer of de miniaturen verschijnen.
 Blijft een foto leeg, kijk dan bij *Onderhoud* of GD er is; zonder die extensie
 worden er geen varianten gemaakt.
 
+## Registratie met goedkeuring
+
+Nieuwe accounts kunnen zichzelf aanmelden op **`/register`** — maar alleen
+als je dat aanzet: *Beheer → Instellingen → tabblad Users →
+"Registration — open"*. Staat het uit (de standaard), dan bestaat de pagina
+simpelweg niet (404). Staat het aan, dan toont de inlogpagina ook een
+"account aanvragen"-link.
+
+Een aanvraag komt binnen met de status **"Wacht op goedkeuring"** en kan
+níet inloggen. Jij (en elke andere beheerder) krijgt er een e-mail van, en
+in *Beheer → Gebruikers* staat naast de aanvraag een groene knop
+**Goedkeuren**. Pas na die klik is het account actief — de aanvrager krijgt
+daar automatisch bericht van. De rol van nieuwe accounts stel je in met
+"Registration — default role"; wat je daar ook kiest, een zelf-geregistreerd
+account start nooit als beheerder.
+
 ## Bijwerken
 
 ```bash

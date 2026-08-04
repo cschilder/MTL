@@ -28,6 +28,7 @@ use MTL\Http\Controllers\AlbumController;
 use MTL\Http\Controllers\Auth\LoginController;
 use MTL\Http\Controllers\Auth\PasswordController;
 use MTL\Http\Controllers\Auth\ProfileController;
+use MTL\Http\Controllers\Auth\RegisterController;
 use MTL\Http\Controllers\Auth\TwoFactorController;
 use MTL\Http\Controllers\FeedController;
 use MTL\Http\Controllers\HomeController;
@@ -119,6 +120,9 @@ return static function (Router $router): void {
         $guest->get('/login/2fa', [TwoFactorController::class, 'challenge'])->name('login.2fa');
         $guest->post('/login/2fa', [TwoFactorController::class, 'verify'])->name('login.2fa.verify');
 
+        $guest->get('/register', [RegisterController::class, 'show'])->name('register');
+        $guest->post('/register', [RegisterController::class, 'store'])->name('register.store');
+
         $guest->get('/password/forgot', [PasswordController::class, 'request'])->name('password.request');
         $guest->post('/password/forgot', [PasswordController::class, 'sendLink'])->name('password.email');
         $guest->get('/password/reset/{token}', [PasswordController::class, 'reset'])->name('password.reset');
@@ -208,6 +212,7 @@ return static function (Router $router): void {
             $users->delete('/users/{id:\d+}', [UserAdminController::class, 'destroy'])->name('admin.users.destroy');
             $users->post('/users/{id:\d+}/restore', [UserAdminController::class, 'restore'])->name('admin.users.restore');
             $users->post('/users/{id:\d+}/invite', [UserAdminController::class, 'resendInvite'])->name('admin.users.invite');
+            $users->post('/users/{id:\d+}/approve', [UserAdminController::class, 'approve'])->name('admin.users.approve');
             $users->delete('/users/{id:\d+}/sessions', [UserAdminController::class, 'revokeSessions'])->name('admin.users.sessions');
         });
 

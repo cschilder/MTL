@@ -99,7 +99,7 @@ $roleLabels = [
         <div>
             <label for="status"><?= e(__('user.status')) ?></label>
             <select id="status" name="status">
-                <?php foreach (['invited', 'active', 'disabled'] as $status): ?>
+                <?php foreach (['invited', 'pending', 'active', 'disabled'] as $status): ?>
                     <option value="<?= e($status) ?>" <?= $value('status', 'invited') === $status ? 'selected' : '' ?>>
                         <?= e(__('user.status_' . $status)) ?>
                     </option>

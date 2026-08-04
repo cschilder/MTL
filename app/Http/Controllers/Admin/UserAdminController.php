@@ -87,7 +87,7 @@ final class UserAdminController extends Controller
             'name'   => 'required|string|min:2|max:120',
             'email'  => 'required|email|unique:users,email',
             'role'   => 'required|string|in:' . implode(',', User::ROLES),
-            'status' => 'nullable|string|in:invited,active,disabled',
+            'status' => 'nullable|string|in:invited,pending,active,disabled',
         ]);
 
         $this->assertRoleAssignable($actor, (string) $data['role']);
@@ -107,6 +107,28 @@ final class UserAdminController extends Controller
         $this->sendInvitation($user, $actor);
 
         return $this->back(path('/admin/users/' . $user->id()), __('user.created'));
+    }
+
+    /**
+     * Lets a self-registered account in: pending → active, with a mail to
+     * the person who has been waiting for it.
+     */
+    public function approve(Request $request): Response
+    {
+        $actor = $this->requireUser();
+
+        /** @var User $user */
+        $user = $this->findOrFail(User::class, (int) $request->param('id', '0'), true);
+
+        $this->assertMayManage($user);
+
+        if ($user->string('status') !== 'pending') {
+            return $this->back(path('/admin/users'), __('user.not_pending'), 'caution');
+        }
+
+        \MTL\Services\RegistrationService::approve($user, $actor);
+
+        return $this->back(path('/admin/users'), __('user.approved', ['name' => $user->displayName()]));
     }
 
     public function edit(Request $request): Response
@@ -144,7 +166,7 @@ final class UserAdminController extends Controller
             'name'   => 'required|string|min:2|max:120',
             'email'  => 'required|email|unique:users,email,' . $user->id(),
             'role'   => 'required|string|in:' . implode(',', User::ROLES),
-            'status' => 'required|string|in:invited,active,disabled',
+            'status' => 'required|string|in:invited,pending,active,disabled',
             'bio'    => 'nullable|string|max:500',
         ]);
 

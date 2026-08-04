@@ -28,6 +28,7 @@ $roleLabels = [
 $statusLabels = [
     'active'   => __('user.status_active'),
     'invited'  => __('user.status_invited'),
+    'pending'  => __('user.status_pending'),
     'disabled' => __('user.status_disabled'),
 ];
 ?>
@@ -96,6 +97,15 @@ $statusLabels = [
                         <?= e($user->date('last_login_at')?->format('j M Y, H:i') ?? __('user.never')) ?>
                     </td>
                     <td class="mtl-table__actions">
+                        <?php if ($user->string('status') === 'pending'): ?>
+                            <form method="post" action="<?= e(path('/admin/users/' . $user->id() . '/approve')) ?>"
+                                  style="display: inline;">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="p-button--positive is-small" style="margin: 0;">
+                                    <?= e(__('user.approve')) ?>
+                                </button>
+                            </form>
+                        <?php endif; ?>
                         <a class="p-button--base" href="<?= e(path('/admin/users/' . $user->id())) ?>">
                             <?= icon('pencil', 16) ?>
                         </a>

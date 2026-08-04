@@ -154,7 +154,11 @@ final class AuthManager
             return AttemptResult::invalid();
         }
 
-        if ($user->string('status') === 'invited') {
+        // 'invited' (admin created it, person has not claimed it) and
+        // 'pending' (person requested it, admin has not approved it) both
+        // stop here — anything that is not 'active' does, so a status added
+        // later can never fall through into a session by omission.
+        if ($user->string('status') !== 'active') {
             return AttemptResult::notActivated($user);
         }
 
