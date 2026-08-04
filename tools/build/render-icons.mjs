@@ -7,9 +7,10 @@
  * committed, so the server never runs this.
  */
 
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const ROOT = resolve(import.meta.dirname, '../..');
 
@@ -39,16 +40,24 @@ const browser = await chromium.launch({ executablePath });
 const page = await (await browser.newContext()).newPage();
 
 for (const [source, target, size] of JOBS) {
+  // The SVG markup is inlined into the page rather than referenced: Chromium
+  // silently refuses file:// subresources from a data: page, which once
+  // produced a full set of perfectly transparent icons and a black launcher
+  // tile on the phone that installed them.
+  const svg = readFileSync(`${ROOT}/${source}`, 'utf8')
+    .replace(/width="\d+" height="\d+"/, `width="${size}" height="${size}"`);
+
+  const stage = resolve(tmpdir(), 'mtl-icon-stage.html');
+  writeFileSync(stage, `<!DOCTYPE html><style>*{margin:0}</style>${svg}`);
+
   await page.setViewportSize({ width: size, height: size });
-  await page.goto(
-    'data:text/html,<style>*{margin:0}</style>'
-    + `<img src="file://${ROOT}/${source}" width="${size}" height="${size}">`,
-  );
-  await page.waitForTimeout(120);
+  await page.goto(`file://${stage}`);
 
   mkdirSync(dirname(`${ROOT}/${target}`), { recursive: true });
   await page.screenshot({ path: `${ROOT}/${target}`, omitBackground: true });
   console.log(`${target}  ${size}×${size}`);
+
+  rmSync(stage, { force: true });
 }
 
 await browser.close();
