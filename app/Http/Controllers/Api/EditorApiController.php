@@ -201,8 +201,11 @@ final class EditorApiController extends Controller
         // coordinates of a place that resolves fine.
         if ($found === 0 && GeocodeService::lastLookupFailed()) {
             return Response::json([
-                'results' => $results,
-                'error'   => __('step.geocode_unreachable'),
+                'results'     => $results,
+                'error'       => __('step.geocode_unreachable'),
+                // The signal the admin page's fallback keys on: when the
+                // server cannot ask, the author's browser asks instead.
+                'unreachable' => true,
             ]);
         }
 

@@ -279,6 +279,14 @@ function enhanceCoordinatePaste() {
  * candidates, and a click on one fills latitude, longitude and — when still
  * empty — the country. Built with textContent throughout: the names come from
  * an external service and must render as text no matter what they contain.
+ *
+ * When the server itself cannot reach the geocoder — shared hosts sometimes
+ * block outbound requests — the author's own browser asks Nominatim directly.
+ * That fallback lives only on this admin form (the CSP allows it nowhere
+ * else), so a visitor's browser still never talks to anyone but this site.
+ * And because the server-side fill-on-save cannot work on such a host, the
+ * form also looks the place up by itself the moment the location field is
+ * left while the coordinates are still empty.
  */
 function enhanceGeocode() {
   const button = document.querySelector('[data-geocode]');
@@ -293,7 +301,57 @@ function enhanceGeocode() {
 
   if (!queryField || !latitude || !longitude || !list) return;
 
-  const search = async () => {
+  /** The browser-side lookup, for when the server's own attempt cannot get out. */
+  const direct = async (query) => {
+    const url = 'https://nominatim.openstreetmap.org/search?'
+      + new URLSearchParams({
+        format: 'jsonv2',
+        q: query,
+        limit: '5',
+        addressdetails: '1',
+        'accept-language': window.MTL?.locale ?? 'en',
+      });
+
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+
+    if (!response.ok) throw new Error(`geocoder ${response.status}`);
+
+    return (await response.json())
+      .filter((row) => row && row.lat && row.lon)
+      .map((row) => ({
+        name: row.name || String(row.display_name ?? query).split(',')[0],
+        display: row.display_name ?? '',
+        country: (row.address?.country_code ?? '').toUpperCase(),
+        latitude: Number(row.lat),
+        longitude: Number(row.lon),
+        source: 'geocoder',
+      }));
+  };
+
+  const apply = (hit) => {
+    latitude.value = String(hit.latitude);
+    longitude.value = String(hit.longitude);
+
+    if (country && country.value.trim() === '' && hit.country) {
+      country.value = hit.country;
+    }
+
+    latitude.dispatchEvent(new Event('input', { bubbles: true }));
+    longitude.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  const status = (text) => {
+    const item = document.createElement('li');
+    item.className = 'mtl-geocode__status';
+    item.textContent = text;
+    list.append(item);
+  };
+
+  /**
+   * @param {boolean} auto fill the first hit in without waiting for a click —
+   *   the list stays open so a wrong guess is one tap from corrected
+   */
+  const search = async (auto = false) => {
     const query = queryField.value.trim();
 
     if (query.length < 2) return;
@@ -301,11 +359,7 @@ function enhanceGeocode() {
     button.disabled = true;
     list.hidden = false;
     list.textContent = '';
-
-    const busy = document.createElement('li');
-    busy.className = 'mtl-geocode__status';
-    busy.textContent = t('js.geocode.searching');
-    list.append(busy);
+    status(t('js.geocode.searching'));
 
     try {
       const payload = await request(
@@ -313,24 +367,33 @@ function enhanceGeocode() {
         { method: 'GET' },
       );
 
-      list.textContent = '';
+      let { results = [], error = null } = payload;
 
-      if (payload.error) {
-        const item = document.createElement('li');
-        item.className = 'mtl-geocode__status';
-        item.textContent = payload.error;
-        list.append(item);
+      // The server could not ask the geocoder; this browser can.
+      if (payload.unreachable) {
+        try {
+          const found = await direct(query);
+          results = results.filter((hit) => hit.source !== 'geocoder').concat(found);
+          error = null;
+        } catch {
+          // Keep the server's honest "unreachable" message.
+        }
       }
 
-      if ((payload.results ?? []).length === 0 && !payload.error) {
-        const item = document.createElement('li');
-        item.className = 'mtl-geocode__status';
-        item.textContent = t('js.geocode.none');
-        list.append(item);
+      list.textContent = '';
+
+      if (error) status(error);
+
+      if (results.length === 0 && !error) {
+        status(t('js.geocode.none'));
         return;
       }
 
-      for (const hit of payload.results) {
+      if (auto && results.length > 0) {
+        apply(results[0]);
+      }
+
+      for (const hit of results) {
         const item = document.createElement('li');
         const pick = document.createElement('button');
 
@@ -347,16 +410,7 @@ function enhanceGeocode() {
         pick.append(name, detail);
 
         pick.addEventListener('click', () => {
-          latitude.value = String(hit.latitude);
-          longitude.value = String(hit.longitude);
-
-          if (country && country.value.trim() === '' && hit.country) {
-            country.value = hit.country;
-          }
-
-          latitude.dispatchEvent(new Event('input', { bubbles: true }));
-          longitude.dispatchEvent(new Event('input', { bubbles: true }));
-
+          apply(hit);
           list.hidden = true;
           list.textContent = '';
         });
@@ -372,13 +426,21 @@ function enhanceGeocode() {
     }
   };
 
-  button.addEventListener('click', search);
+  button.addEventListener('click', () => search());
 
   // Enter in the place field searches instead of submitting half a form.
   queryField.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
       search();
+    }
+  });
+
+  // Leaving the location field with empty coordinates looks the place up and
+  // fills the first candidate in — typing a name is all the work there is.
+  queryField.addEventListener('change', () => {
+    if (latitude.value.trim() === '' && longitude.value.trim() === '') {
+      search(true);
     }
   });
 }

@@ -45,8 +45,10 @@ globe-data staan alle in de repository. De pagina laadt van één domein en
 verder van niets. De ene bewuste uitzondering zit aan de serverkant: wie bij
 een stop alleen een plaatsnaam invult, krijgt de coördinaten opgezocht via
 [Nominatim](https://nominatim.org/) (OpenStreetMap). Dat gebeurt uitsluitend
-voor ingelogde auteurs, wordt op schijf gecachet, en de browser van een
-bezoeker praat nooit met wie dan ook behalve deze site.
+voor ingelogde auteurs — server-side, met cache op schijf; kan de server er
+niet uit (sommige gedeelde hosts blokkeren dat), dan neemt de browser van de
+auteur het op het stopformulier over. De browser van een bezoeker praat nooit
+met wie dan ook behalve deze site.
 
 ## In beeld
 

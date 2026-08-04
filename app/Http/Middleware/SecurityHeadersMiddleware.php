@@ -50,7 +50,14 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
 
         // Media responses are streamed and must not carry a document policy.
         if (!str_starts_with($request->path, '/media/')) {
-            $headers['Content-Security-Policy'] = $this->contentSecurityPolicy();
+            $headers['Content-Security-Policy'] = $this->contentSecurityPolicy(
+                // The management screens may talk to the geocoder directly:
+                // when the *server* cannot reach Nominatim (some shared hosts
+                // block outbound requests), the author's own browser takes
+                // over the lookup. Only there — the public site's policy
+                // stays fully self-contained.
+                allowGeocoder: str_starts_with($request->path, '/admin')
+            );
         }
 
         if ($request->isSecure()) {
@@ -66,9 +73,13 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
         return $response->withHeaders($headers);
     }
 
-    private function contentSecurityPolicy(): string
+    private function contentSecurityPolicy(bool $allowGeocoder = false): string
     {
         $nonce = self::nonce();
+
+        $connect = $allowGeocoder
+            ? "connect-src 'self' https://nominatim.openstreetmap.org"
+            : "connect-src 'self'";
 
         $directives = [
             "default-src 'self'",
@@ -88,7 +99,7 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
             "media-src 'self' blob:",
 
             "font-src 'self'",
-            "connect-src 'self'",
+            $connect,
             "worker-src 'self' blob:",
             "manifest-src 'self'",
             "frame-ancestors 'self'",

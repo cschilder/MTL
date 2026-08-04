@@ -303,11 +303,13 @@ mappen zonder tekstbestanden over.
 
 **Een plaatsnaam krijgt geen coördinaten.**
 De server kon nominatim.openstreetmap.org niet bereiken (uitgaande HTTPS) of
-de dienst kende de naam niet. Probeer de knop *Zoek coördinaten* naast het
-locatieveld: die toont wat er wel gevonden wordt. De knop *Zoek coördinaten
-voor alle stops* op het reis-bewerkscherm probeert het voor de hele reis
-tegelijk, en een stop zonder coördinaten opnieuw opslaan met een (aangepaste)
-plaatsnaam of titel probeert het gewoon nog eens.
+de dienst kende de naam niet; de melding onder de zoekknop zegt welke van de
+twee het is. Is de server geblokkeerd, dan neemt **je eigen browser het op
+het stopformulier automatisch over**: een plaatsnaam typen en het veld
+verlaten vult de coördinaten alsnog in, en de knop *Zoek coördinaten* werkt
+ook gewoon. Alleen wat server-side moet (de knop *Zoek coördinaten voor alle
+stops* en `geocode:backfill`) blijft op zo'n host beperkt tot de
+GPS-gegevens van foto's — die werken altijd.
 
 **De site blijft naar /install verwijzen terwijl alles al is ingericht.**
 De vergrendeling kon niet worden geschreven: controleer of `storage/cache/`
