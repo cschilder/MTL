@@ -26,8 +26,11 @@ on:
         type: boolean
         default: false
 
+# write: the workflow publishes the built APK as a release asset, which is
+# the only artefact form that can be downloaded without a GitHub login — the
+# phone that needs the file has none.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -58,6 +61,25 @@ jobs:
           name: mtl-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      # The same APK, but reachable from a phone: artifact downloads demand a
+      # GitHub login, release assets on a public repository do not. The moving
+      # tag app-latest always carries the newest build, so the download link
+      # never changes.
+      - name: Publish the APK under the app-latest release
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-latest
+          name: MTL Android-app (nieuwste build)
+          body: |
+            De meest recente APK van de MTL-app, automatisch gebouwd.
+            Download het .apk-bestand hieronder op je telefoon en installeer het.
+            Weigert Android vanwege een afwijkende handtekening, verwijder dan
+            eerst de oude app en installeer opnieuw.
+          prerelease: true
+          make_latest: false
+          files: android/app/build/outputs/apk/debug/*.apk
 
       # ---------------------------------------------------------------------
       # Release
