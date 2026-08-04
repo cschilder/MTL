@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 96" width="250" height="96">
+  <circle cx="14" cy="74" r="3.6" fill="#e5007d"/>
+  <circle cx="14" cy="62.5" r="3.6" fill="#f39200"/>
+  <circle cx="14" cy="51" r="3.6" fill="#ffe500"/>
+  <circle cx="14" cy="39.5" r="3.6" fill="#3aaa35"/>
+  <circle cx="14" cy="28" r="3.6" fill="#00a19a"/>
+  <circle cx="19.99" cy="33.37" r="3.6" fill="#0096d6"/>
+  <circle cx="27.24" cy="42.3" r="3.6" fill="#1455a3"/>
+  <circle cx="34.49" cy="51.22" r="3.6" fill="#7d2181"/>
+  <circle cx="41.75" cy="55.85" r="3.6" fill="#e30613"/>
+  <circle cx="49" cy="46.93" r="3.6" fill="#e5007d"/>
+  <circle cx="56.25" cy="38" r="3.6" fill="#f39200"/>
+  <circle cx="63.5" cy="29.08" r="3.6" fill="#ffe500"/>
+  <circle cx="66" cy="33.54" r="3.6" fill="#3aaa35"/>
+  <circle cx="66" cy="45.04" r="3.6" fill="#00a19a"/>
+  <circle cx="66" cy="56.54" r="3.6" fill="#0096d6"/>
+  <path d="M66 88C66 88 52 72 52 61a14 14 0 1 1 28 0c0 11-14 27-14 27Z" fill="#e5007d"/>
+  <polygon points="67.06,52.47 73.48,58.68 69.57,66.71 60.72,65.47 59.17,56.67" fill="#ffe500"/>
+<g transform="translate(122 33)" fill="#0b1023">
+    <path d="M0 30V0h7.4l7.6 10.6L22.6 0H30v30h-7V12.6L15 23.4 7 12.6V30Z"/>
+    <path transform="translate(37 0)" d="M0 0h22v7h-7.4v23h-7.2V7H0Z"/>
+    <path transform="translate(66 0)" d="M0 0h7v23h13v7H0Z"/>
+  </g>
+</svg>
