@@ -6,6 +6,13 @@
  * git-ignored, so credentials never reach the repository. On Strato the file is
  * uploaded once and then left alone by subsequent deployments.
  *
+ * An existing config.php never needs to be kept in sync with this template:
+ * every value the application reads has a built-in default, so a config.php
+ * that only contains the database credentials and the app URL is complete.
+ * Anything listed here and absent there simply uses the default. Site-level
+ * choices (title, language, globe display, media rules) do not live in this
+ * file at all — they are managed under Management → Settings.
+ *
  * Every value can also be supplied through an environment variable, which is
  * what the test suite and the CI workflow use. The env() helper prefers the
  * environment and falls back to the literal written here.
@@ -169,10 +176,9 @@ return [
     // Globe
     // -------------------------------------------------------------------------
     'globe' => [
-        // Land geometry resolution shipped to the browser.
-        // 'low' (110m, ~90 KB) is right for phones, 'high' (50m, ~400 KB)
-        // looks better on a desktop or headset.
-        'resolution' => env('GLOBE_RESOLUTION', 'low'),
+        // The globe's display options — resolution, rotation, graticule,
+        // marker scale — are settings, not configuration: they live under
+        // Management → Settings → Globe, editable without touching a file.
 
         // Enable the WebXR "enter VR" button when the browser reports support.
         'webxr' => true,
