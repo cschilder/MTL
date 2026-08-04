@@ -359,16 +359,25 @@
   }
 
   .mtl-globe__controls {
+    // Wrapping is the safety net: however many buttons the bar grows — VR
+    // and the timeline appear only when supported/usable, so the count
+    // varies per device — none may ever hang outside the pill again. The
+    // fixed gap goes: space-evenly does the spacing, so the full set of
+    // eight 40px buttons shares one row on a 360px screen.
+    flex-wrap: wrap;
+    gap: 0;
     inline-size: calc(100vw - 2 * var(--mtl-space-3));
     justify-content: space-evenly;
   }
 
   // Every button must fit inside the pill on a narrow phone: drop the
-  // horizontal padding (the touch-target minimum keeps them tappable) and let
-  // them shrink, or the last button — layers — pokes out past the bar.
+  // horizontal padding and step the minimum down to 40px (still a tappable
+  // target) so seven buttons — the full set with sound, timeline and VR —
+  // fit a 360px screen with room to spare.
   .mtl-globe__button {
     flex: 0 1 auto;
-    min-inline-size: var(--mtl-touch);
+    min-block-size: 2.5rem;
+    min-inline-size: 2.5rem;
     padding: 0;
   }
 
