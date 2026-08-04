@@ -480,6 +480,10 @@ return [
     'trip.globe_private'    => 'Visibility is "private": only you and editors see this trip.',
     'step.no_coordinates'   => 'no coordinates',
 
+    'trip.globe_draft_steps' => ':count stop(s) are still "draft". Visitors see them nowhere — the globe included, even though the trip itself is published.',
+    'trip.publish_steps'     => 'Publish every stop',
+    'trip.steps_published'   => ':count stop(s) published.',
+
     'trip.geocode_all'      => 'Find coordinates for every stop',
     'trip.geocode_all_hint' => 'Every stop without coordinates gets its place from its photos\' GPS data, its location, or its title.',
     'trip.geocoded'         => ':placed stop(s) put on the globe; :left not found.',

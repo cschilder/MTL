@@ -129,8 +129,16 @@ body {
 // its own touch target with an accessible name from the label span) and the
 // brand keeps only its mark; the title is one tap away on the globe itself.
 @media (max-width: 46rem) {
+  // Tighter everything, so the three menu icons genuinely fit beside the
+  // search box instead of the last one clipping behind it: at the old
+  // paddings a 360px phone had room for two.
+  .mtl-header {
+    gap: var(--mtl-space-2);
+    padding-inline: var(--mtl-space-3);
+  }
+
   .mtl-header__actions .p-search-box {
-    inline-size: 7.5rem;
+    inline-size: 6.5rem;
   }
 
   .mtl-header__brand > span,

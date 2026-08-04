@@ -481,6 +481,10 @@ return [
     'trip.globe_private'    => 'Zichtbaarheid staat op "private": alleen jij en redacteuren zien deze reis.',
     'step.no_coordinates'   => 'geen coördinaten',
 
+    'trip.globe_draft_steps' => ':count stop(s) staan nog op "draft". Bezoekers zien die nergens — ook niet op de wereldbol, ook al is de reis zelf gepubliceerd.',
+    'trip.publish_steps'     => 'Publiceer alle stops',
+    'trip.steps_published'   => ':count stop(s) gepubliceerd.',
+
     'trip.geocode_all'      => 'Zoek coördinaten voor alle stops',
     'trip.geocode_all_hint' => 'Elke stop zonder coördinaten krijgt zijn plek uit de GPS-gegevens van zijn foto\'s, de locatie of de titel.',
     'trip.geocoded'         => ':placed stop(s) op de wereldbol gezet; :left niet gevonden.',

@@ -115,9 +115,13 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
                 // coordinates, and "I added a trip but the globe is empty" is
                 // the support question that taught us to say so here.
                 $placed = 0;
+                $draftSteps = 0;
                 foreach ($steps as $listStep) {
                     if ($listStep->latitude() !== null && $listStep->longitude() !== null) {
                         $placed++;
+                    }
+                    if ($listStep->string('status') !== 'published') {
+                        $draftSteps++;
                     }
                 }
                 ?>
@@ -147,6 +151,20 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
                         <p class="mtl-muted"><?= e(__('trip.globe_draft')) ?></p>
                     <?php elseif ($trip->string('visibility') === 'private'): ?>
                         <p class="mtl-muted"><?= e(__('trip.globe_private')) ?></p>
+                    <?php endif; ?>
+
+                    <?php // The quiet second half of "my published trip is not
+                          // on the globe": every *stop* has its own status,
+                          // and the form defaults it to draft. ?>
+                    <?php if ($draftSteps > 0 && $trip->string('status') === 'published'): ?>
+                        <div class="p-notification--caution">
+                            <div class="p-notification__content">
+                                <p class="p-notification__message"><?= e(__('trip.globe_draft_steps', ['count' => $draftSteps])) ?></p>
+                            </div>
+                        </div>
+                        <button type="submit" form="mtl-publish-steps" class="p-button" style="margin: 0;">
+                            <?= e(__('trip.publish_steps')) ?>
+                        </button>
                     <?php endif; ?>
                 </fieldset>
             <?php endif; ?>
@@ -214,6 +232,10 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
 <?php if (!$isNew): ?>
     <form id="mtl-geocode-all" method="post"
           action="<?= e(path('/admin/trips/' . $trip->id() . '/geocode')) ?>">
+        <?= csrf_field() ?>
+    </form>
+    <form id="mtl-publish-steps" method="post"
+          action="<?= e(path('/admin/trips/' . $trip->id() . '/publish-steps')) ?>">
         <?= csrf_field() ?>
     </form>
 <?php endif; ?>

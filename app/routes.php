@@ -160,6 +160,7 @@ return static function (Router $router): void {
         $admin->post('/trips/{id:\d+}/restore', [TripAdminController::class, 'restore'])->name('admin.trips.restore');
         $admin->post('/trips/{id:\d+}/reorder', [TripAdminController::class, 'reorderSteps'])->name('admin.trips.reorder');
         $admin->post('/trips/{id:\d+}/geocode', [TripAdminController::class, 'geocodeSteps'])->name('admin.trips.geocode');
+        $admin->post('/trips/{id:\d+}/publish-steps', [TripAdminController::class, 'publishSteps'])->name('admin.trips.publish_steps');
 
         // --- Steps ------------------------------------------------------------
         $admin->get('/trips/{trip:\d+}/steps/new', [StepAdminController::class, 'create'])->name('admin.steps.create');

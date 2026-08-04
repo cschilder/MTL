@@ -230,6 +230,34 @@ final class TripAdminController extends Controller
     }
 
     /**
+     * Publishes every draft stop of the trip in one go.
+     *
+     * The stop form defaults to draft, and a published trip full of draft
+     * stops is invisible on a visitor's globe — the quiet second half of "my
+     * published trip is not there". One button beats editing every stop.
+     */
+    public function publishSteps(Request $request): Response
+    {
+        /** @var Trip $trip */
+        $trip = $this->findOrFail(Trip::class, (int) $request->param('id', '0'));
+
+        $this->authorize('trip.update', $trip);
+
+        $published = 0;
+
+        foreach ($trip->steps() as $step) {
+            if ($step->string('status') === 'published' || !$this->auth()->can('step.publish', $step)) {
+                continue;
+            }
+
+            StepService::update($step, ['status' => 'published']);
+            $published++;
+        }
+
+        return $this->back($trip->editUrl(), __('trip.steps_published', ['count' => $published]));
+    }
+
+    /**
      * Tags arrive as a comma-separated field.
      */
     private function syncTags(Request $request, Trip $trip): void
