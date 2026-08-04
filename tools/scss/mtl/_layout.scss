@@ -27,6 +27,22 @@ body {
 // Header
 // -----------------------------------------------------------------------------
 
+// Vanilla paints visited links purple. That distinction earns its keep in a
+// list of search results; here it painted the entire menu bar purple on any
+// phone that had, naturally, visited its own pages. Visited links keep the
+// ordinary link colour, and chrome (header, footer, admin rail) keeps
+// whatever colour it set itself.
+a:visited {
+  color: var(--vf-color-link-default);
+}
+
+.mtl-header a:visited,
+.mtl-footer a:visited,
+.mtl-admin__rail a:visited,
+.mtl-globe__controls a:visited {
+  color: inherit;
+}
+
 .mtl-header {
   align-items: center;
   backdrop-filter: blur(12px);
