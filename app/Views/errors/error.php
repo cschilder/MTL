@@ -41,6 +41,28 @@ $illustration = match (true) {
     <p style="margin-block-start: var(--mtl-space-5);">
         <a class="p-button--positive" href="<?= e(path('/')) ?>"><?= e(__('error.go_home')) ?></a>
     </p>
+
+    <?php
+    // On a 403 the likeliest story is "signed in as the wrong account" — a
+    // viewer tapping the management gear, a shared device. Without this
+    // block there was no way out: signing out lived behind the very page
+    // that refused them.
+    $viewer = null;
+    if ($status === 403) {
+        try {
+            $viewer = MTL\Auth\AuthManager::instance()->user();
+        } catch (\Throwable) {
+            // Errors this early have no session; the page stays generic.
+        }
+    }
+    ?>
+    <?php if ($viewer !== null): ?>
+        <p class="mtl-muted"><?= e(__('auth.signed_in_as', ['name' => $viewer->displayName()])) ?></p>
+        <form method="post" action="<?= e(path('/logout')) ?>">
+            <?= csrf_field() ?>
+            <button type="submit" class="p-button" style="margin: 0;"><?= e(__('nav.sign_out')) ?></button>
+        </form>
+    <?php endif; ?>
 </div>
 
 <?php if ($exception !== null): ?>

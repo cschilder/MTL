@@ -135,6 +135,12 @@ return static function (Router $router): void {
 
     $router->post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+    // GET /logout shows a one-button confirmation: people type the URL, and
+    // it is the escape hatch for an account that has no management area.
+    $router->group(['middleware' => ['auth']], static function (Router $authed): void {
+        $authed->get('/logout', [LoginController::class, 'confirmLogout'])->name('logout.confirm');
+    });
+
     // =========================================================================
     // Management environment
     // =========================================================================

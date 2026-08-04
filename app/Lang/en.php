@@ -72,6 +72,8 @@ return [
     'auth.remember'          => 'Stay signed in on this device',
     'auth.forgot'            => 'Forgotten your password?',
 
+    'auth.signed_in_as'      => 'You are signed in as :name.',
+
     'auth.register'          => 'Request an account',
     'auth.register_link'     => 'No account yet? Request one.',
     'auth.register_intro'    => 'Fill in your details; an administrator reviews the request. You can sign in once it has been approved.',

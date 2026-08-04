@@ -66,6 +66,15 @@ final class LoginController extends Controller
         return $this->redirectAfterLogin($request, $result->message());
     }
 
+    /** The confirmation behind GET /logout; the POST below does the work. */
+    public function confirmLogout(Request $request): Response
+    {
+        return view('auth/logout', [
+            'title'   => __('nav.sign_out'),
+            'noindex' => true,
+        ]);
+    }
+
     public function logout(Request $request): Response
     {
         $this->auth()->logout();

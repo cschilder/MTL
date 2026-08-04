@@ -72,6 +72,8 @@ return [
     'auth.remember'          => 'Ingelogd blijven op dit apparaat',
     'auth.forgot'            => 'Wachtwoord vergeten?',
 
+    'auth.signed_in_as'      => 'Je bent ingelogd als :name.',
+
     'auth.register'          => 'Account aanvragen',
     'auth.register_link'     => 'Nog geen account? Vraag er een aan.',
     'auth.register_intro'    => 'Vul je gegevens in; een beheerder beoordeelt je aanvraag. Je kunt pas inloggen nadat die is goedgekeurd.',

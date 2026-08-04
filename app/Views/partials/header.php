@@ -73,10 +73,19 @@ $links = [
             </button>
         </form>
 
-        <?php if ($currentUser !== null): ?>
+        <?php if ($currentUser !== null && can('admin.access')): ?>
             <a class="mtl-header__link" href="<?= e(path('/admin')) ?>">
                 <?= icon('settings', 18) ?>
                 <span class="u-hide--small"><?= e(__('nav.admin')) ?></span>
+            </a>
+        <?php elseif ($currentUser !== null): ?>
+            <?php // Signed in without a management area to go to (a viewer):
+                  // the only sensible action here is signing out. Offering the
+                  // gear instead used to lead straight to a 403 with no way
+                  // back — a person could not even switch accounts. ?>
+            <a class="mtl-header__link" href="<?= e(path('/logout')) ?>">
+                <?= icon('sign-out', 18) ?>
+                <span class="u-hide--small"><?= e(__('nav.sign_out')) ?></span>
             </a>
         <?php else: ?>
             <a class="mtl-header__link" href="<?= e(path('/login')) ?>">
