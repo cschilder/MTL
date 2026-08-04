@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace MTL\Http\Controllers\Admin;
 
+use MTL\Core\Migrator;
 use MTL\Core\Request;
 use MTL\Core\Response;
 use MTL\Http\Controllers\Controller;
 use MTL\Models\Media;
 use MTL\Models\Step;
 use MTL\Models\Trip;
+use MTL\Models\User;
 use MTL\Services\AuditService;
 use MTL\Services\MaintenanceService;
 use MTL\Services\TripService;
@@ -64,6 +66,19 @@ final class DashboardController extends Controller
                 ? AuditService::query()->limit(12)->get()
                 : [],
             'health'   => $this->auth()->can('maintenance.run') ? MaintenanceService::healthReport() : [],
+
+            // Things waiting for a decision are announced here, on the first
+            // screen after signing in — nobody should have to know which page
+            // to check. Both come with the button that resolves them.
+            'pendingMigrations' => $this->auth()->can('maintenance.run')
+                ? count(array_filter(
+                    (new Migrator(db()))->status(),
+                    static fn (array $entry): bool => !$entry['applied']
+                ))
+                : 0,
+            'pendingUsers' => $this->auth()->can('user.manage')
+                ? User::query()->where('status', '=', 'pending')->whereNull('deleted_at')->count()
+                : 0,
         ]);
     }
 }

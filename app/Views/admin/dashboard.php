@@ -51,6 +51,36 @@ $health = $this->get('health', []);
     </div>
 </div>
 
+<?php // Decisions waiting for the owner, each with its resolving button. ?>
+<?php if (((int) $this->get('pendingMigrations', 0)) > 0): ?>
+    <div class="p-notification--caution">
+        <div class="p-notification__content" style="display: flex; align-items: center; gap: var(--mtl-space-3); flex-wrap: wrap;">
+            <p class="p-notification__message" style="margin: 0;">
+                <?= e(__('admin.migrations_pending', ['count' => (int) $this->get('pendingMigrations')])) ?>
+            </p>
+            <form method="post" action="<?= e(path('/admin/maintenance/migrate')) ?>" style="margin: 0;">
+                <?= csrf_field() ?>
+                <button type="submit" class="p-button--positive is-small" style="margin: 0;">
+                    <?= e(__('admin.migrate_now')) ?>
+                </button>
+            </form>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if (((int) $this->get('pendingUsers', 0)) > 0): ?>
+    <div class="p-notification--caution">
+        <div class="p-notification__content" style="display: flex; align-items: center; gap: var(--mtl-space-3); flex-wrap: wrap;">
+            <p class="p-notification__message" style="margin: 0;">
+                <?= e(__('admin.users_pending', ['count' => (int) $this->get('pendingUsers')])) ?>
+            </p>
+            <a class="p-button is-small" style="margin: 0;" href="<?= e(path('/admin/users')) ?>">
+                <?= e(__('admin.review_requests')) ?>
+            </a>
+        </div>
+    </div>
+<?php endif; ?>
+
 <dl class="mtl-stats">
     <div class="mtl-stat">
         <dt><?= e(__('trip.trips')) ?></dt>
