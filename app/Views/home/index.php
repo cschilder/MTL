@@ -63,6 +63,13 @@ $globeConfig = $this->get('globeConfig', []);
             <?= icon('rotate') ?>
         </button>
 
+        <?php // Ambience, synthesised in the browser; off until asked for. ?>
+        <button type="button" class="mtl-globe__button" data-globe-action="sound"
+                aria-pressed="false"
+                aria-label="<?= e(__('js.globe.sound')) ?>" title="<?= e(__('js.globe.sound')) ?>">
+            <?= icon('sound') ?>
+        </button>
+
         <?php // The fourth dimension: hidden until there are dated stops to scrub. ?>
         <button type="button" class="mtl-globe__button" data-globe-action="timeline"
                 aria-pressed="false" hidden

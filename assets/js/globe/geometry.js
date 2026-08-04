@@ -194,6 +194,55 @@ export function createGraticule(stepDegrees = 15, radius = 1.0004) {
 }
 
 /**
+ * A star field on a far shell around the scene.
+ *
+ * Deterministic (a seeded generator, no Math.random) so the sky is the same
+ * sky on every visit — a subliminal cue of craft, and it keeps screenshots
+ * reproducible. Stars cluster mildly towards a band, a nod to the Milky Way
+ * without pretending to be a star catalogue.
+ *
+ * @returns {{positions: Float32Array, sizes: Float32Array, phases: Float32Array, count: number}}
+ */
+export function createStars(count = 2600, radius = 30) {
+  const positions = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const phases = new Float32Array(count);
+
+  // Mulberry32: tiny, fast, and plenty random for scenery.
+  let seed = 0x9e3779b9;
+  const random = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  for (let i = 0; i < count; i += 1) {
+    // Uniform on the sphere, then a third of the stars pulled towards an
+    // inclined band.
+    let y = random() * 2 - 1;
+    const theta = random() * Math.PI * 2;
+
+    if (i % 3 === 0) {
+      y *= 0.35;
+    }
+
+    const r = Math.sqrt(Math.max(0, 1 - y * y));
+
+    positions[i * 3] = Math.cos(theta) * r * radius;
+    positions[i * 3 + 1] = y * radius;
+    positions[i * 3 + 2] = Math.sin(theta) * r * radius;
+
+    // Many faint stars, a few bright ones — the real distribution.
+    const brightness = random();
+    sizes[i] = 1 + brightness * brightness * 2.4;
+    phases[i] = random();
+  }
+
+  return { positions, sizes, phases, count };
+}
+
+/**
  * Builds the route ribbons for one trip.
  *
  * A route is drawn as a strip of camera-facing triangles rather than as

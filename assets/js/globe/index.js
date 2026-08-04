@@ -21,12 +21,13 @@ import {
   resizeCanvas, hexToRgb,
 } from '../lib/gl.js';
 import {
-  createSphere, parseLineGeometry, createGraticule,
+  createSphere, parseLineGeometry, createGraticule, createStars,
   createRouteRibbon, createMarkerGeometry, createMarkerStems,
 } from './geometry.js';
 import * as shaders from './shaders.js';
 import { OrbitControls } from './controls.js';
 import { XRSessionManager } from './xr.js';
+import { GlobeAudio } from './audio.js';
 
 /** Colour ramps for the data layers, from low to high. */
 const RAMPS = {
@@ -141,6 +142,7 @@ export class Globe {
       route: createProgram(gl, shaders.routeVertex, shaders.routeFragment, 'route'),
       marker: createProgram(gl, shaders.markerVertex, shaders.markerFragment, 'marker'),
       atmosphere: createProgram(gl, shaders.atmosphereVertex, shaders.atmosphereFragment, 'atmosphere'),
+      star: createProgram(gl, shaders.starVertex, shaders.starFragment, 'star'),
     };
   }
 
@@ -203,6 +205,17 @@ export class Globe {
 
     const graticule = createGraticule(15);
     this.graticule = { buffer: createBuffer(gl, graticule), count: graticule.length / 3 };
+
+    const stars = createStars();
+
+    this.stars = {
+      positions: createBuffer(gl, stars.positions),
+      sizes: createBuffer(gl, stars.sizes),
+      phases: createBuffer(gl, stars.phases),
+      count: stars.count,
+    };
+
+    this.startedAt = performance.now();
   }
 
   // -------------------------------------------------------------------------
@@ -470,6 +483,25 @@ export class Globe {
     });
 
     this.rotateButton?.setAttribute('aria-pressed', String(this.controls.autoRotate));
+
+    // Sound is opt-in and remembered. Starting it requires a user gesture,
+    // so a remembered "on" arms itself on the first interaction with the page
+    // rather than presuming to play unasked.
+    this.audio = new GlobeAudio();
+
+    const soundButton = on('[data-globe-action="sound"]', 'click', (event) => {
+      const enabled = this.audio.toggle();
+      event.currentTarget.setAttribute('aria-pressed', String(enabled));
+    });
+
+    if (soundButton && GlobeAudio.remembered()) {
+      const resume = () => {
+        this.audio.start();
+        soundButton.setAttribute('aria-pressed', 'true');
+      };
+
+      this.element.addEventListener('pointerdown', resume, { once: true });
+    }
 
     this.timelinePanel = this.element.querySelector('[data-globe-timeline]');
     this.layerPanel = this.element.querySelector('[data-globe-layers]');
@@ -743,6 +775,7 @@ export class Globe {
 
     this.selectedIndex = index;
     this.showTooltip(index);
+    this.audio?.tick();
     this.needsRender = true;
   }
 
@@ -808,6 +841,7 @@ export class Globe {
 
     this.flight = this.controls.flyTo(marker.lat, marker.lon, 1.9);
     this.selectedIndex = index;
+    this.audio?.whoosh();
     this.needsRender = true;
   }
 
@@ -919,16 +953,23 @@ export class Globe {
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
 
+    // The sky first, behind everything and without touching depth.
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    this.drawStars();
+    gl.disable(gl.BLEND);
+
     this.drawSphere();
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
+    // Subdued reference lines: they orient, the planet performs.
     if (this.config.showGraticule) {
-      this.drawLines(this.graticule, [0.45, 0.55, 0.68], 0.13);
+      this.drawLines(this.graticule, [0.45, 0.55, 0.68], 0.07);
     }
 
-    this.drawLines(this.borders, [0.55, 0.62, 0.70], 0.30);
+    this.drawLines(this.borders, [0.55, 0.62, 0.70], 0.22);
     this.drawLines(this.coast, [0.78, 0.86, 0.94], 0.55);
 
     this.drawRoutes(width, height);
@@ -937,6 +978,31 @@ export class Globe {
     this.drawAtmosphere();
 
     gl.disable(gl.BLEND);
+  }
+
+  drawStars() {
+    if (!this.stars) return;
+
+    const gl = this.gl;
+    const { program, uniforms, attributes } = this.programs.star;
+
+    gl.useProgram(program);
+    gl.depthMask(false);
+
+    bindAttribute(gl, attributes.aPosition, this.stars.positions, 3);
+    bindAttribute(gl, attributes.aSize, this.stars.sizes, 1);
+    bindAttribute(gl, attributes.aPhase, this.stars.phases, 1);
+
+    gl.uniformMatrix4fv(uniforms.uViewProjection, false, this.matrices.viewProjection);
+    gl.uniform1f(uniforms.uTime, (performance.now() - (this.startedAt ?? 0)) / 1000);
+    gl.uniform1f(uniforms.uPixelRatio, Math.min(window.devicePixelRatio || 1, 2));
+
+    gl.drawArrays(gl.POINTS, 0, this.stars.count);
+
+    gl.depthMask(true);
+
+    disableAttribute(gl, attributes.aSize);
+    disableAttribute(gl, attributes.aPhase);
   }
 
   drawSphere() {

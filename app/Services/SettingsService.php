@@ -47,7 +47,10 @@ final class SettingsService
         'globe.show_graticule'  => ['value' => true,                         'type' => 'bool',   'group' => 'globe', 'autoload' => true],
         'globe.show_terminator' => ['value' => true,                         'type' => 'bool',   'group' => 'globe', 'autoload' => true],
         'globe.marker_scale'    => ['value' => 1.0,                          'type' => 'float',  'group' => 'globe', 'autoload' => true],
-        'globe.resolution'      => ['value' => 'low',                        'type' => 'string', 'group' => 'globe', 'autoload' => true],
+        // 'high' (50m coastlines) by default: the low 110m set reads as
+        // low-poly clutter on any screen made after 2015, and the difference
+        // is ~450 KB fetched once and cached forever.
+        'globe.resolution'      => ['value' => 'high',                       'type' => 'string', 'group' => 'globe', 'autoload' => true],
 
         'media.default_visibility' => ['value' => 'inherit',                 'type' => 'string', 'group' => 'media', 'autoload' => true],
         'media.strip_gps'          => ['value' => false,                     'type' => 'bool',   'group' => 'media', 'autoload' => true],

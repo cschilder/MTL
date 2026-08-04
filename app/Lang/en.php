@@ -387,6 +387,7 @@ return [
     'js.globe.layer_altitude' => 'Altitude',
     'js.globe.layer_temperature' => 'Temperature',
     'js.globe.daylight'      => 'Day and night',
+    'js.globe.sound'         => 'Ambient sound',
     'js.globe.loading'       => 'Loading the globe…',
     'js.globe.unsupported'   => 'Your browser does not support WebGL. Every trip is listed below instead.',
     'js.globe.steps'         => ':count stops',

@@ -388,6 +388,7 @@ return [
     'js.globe.layer_altitude' => 'Hoogte',
     'js.globe.layer_temperature' => 'Temperatuur',
     'js.globe.daylight'      => 'Dag en nacht',
+    'js.globe.sound'         => 'Omgevingsgeluid',
     'js.globe.loading'       => 'Wereldbol laden…',
     'js.globe.unsupported'   => 'Je browser ondersteunt geen WebGL. Hieronder staat een lijst met alle reizen.',
     'js.globe.steps'         => ':count stops',

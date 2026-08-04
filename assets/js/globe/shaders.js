@@ -67,7 +67,19 @@ void main() {
 
   float coverage = smoothstep(0.35, 0.65, land);
 
-  vec3 surface = mix(uOceanColor, uLandColor, coverage);
+  // Land is tinted by latitude, the way the real planet is: a pale tundra
+  // wash towards the poles, a warm arid band around the tropics, richer
+  // green in between. Subtle on purpose — climate zones, not a paint job.
+  float latitude = abs(vNormal.y);
+
+  vec3 landColor = uLandColor;
+  landColor = mix(landColor, vec3(0.42, 0.40, 0.28), smoothstep(0.25, 0.42, latitude) * (1.0 - smoothstep(0.42, 0.62, latitude)) * 0.35);
+  landColor = mix(landColor, vec3(0.55, 0.58, 0.60), smoothstep(0.78, 0.97, latitude) * 0.55);
+
+  // Shallow water hugs the coast: slightly lighter ocean just before land.
+  vec3 oceanColor = mix(uOceanColor, uOceanColor * 1.6 + vec3(0.0, 0.03, 0.05), smoothstep(0.15, 0.35, land) * 0.6);
+
+  vec3 surface = mix(oceanColor, landColor, coverage);
 
   // A brighter band exactly at the shoreline, which is what makes a coast
   // read as a coast rather than as a colour change.
@@ -91,6 +103,12 @@ void main() {
   // Warm the light close to the terminator, the way sunrise looks from orbit.
   float grazing = 1.0 - abs(sunAngle);
   color += vec3(0.20, 0.09, 0.02) * pow(grazing, 6.0) * daylight * uNightMix;
+
+  // The sun's glint on open water — the single strongest "this is a planet,
+  // not a diagram" cue. Blinn-Phong on the ocean only; land stays matte.
+  vec3 halfVector = normalize(normalize(uSunDirection) + viewDirection);
+  float glint = pow(max(dot(normal, halfVector), 0.0), 90.0);
+  color += vec3(0.9, 0.85, 0.7) * glint * (1.0 - coverage) * daylight * 0.5;
 
   // Atmospheric rim: strongest where the surface turns away from the viewer.
   float fresnel = 1.0 - max(dot(normal, viewDirection), 0.0);
@@ -364,6 +382,56 @@ void main() {
   vec3 color = mix(vColor, vec3(1.0), core * 0.35 + vHighlight * 0.2);
 
   gl_FragColor = vec4(color, alpha * fade);
+}
+`;
+
+/**
+ * The star field: a few thousand points on a far shell around the scene.
+ *
+ * Sizes and phases vary per star; the phase drives a slow twinkle whenever
+ * the scene is animating anyway (auto-rotation, a flight). A static frame
+ * simply shows them still — twinkling is never worth waking the render loop.
+ */
+export const starVertex = `
+precision highp float;
+
+attribute vec3 aPosition;
+attribute float aSize;
+attribute float aPhase;
+
+uniform mat4 uViewProjection;
+uniform float uTime;
+uniform float uPixelRatio;
+
+varying float vAlpha;
+varying float vWarmth;
+
+void main() {
+  gl_Position = uViewProjection * vec4(aPosition, 1.0);
+  gl_PointSize = aSize * uPixelRatio;
+
+  vAlpha = 0.55 + 0.45 * sin(uTime * (0.4 + fract(aPhase * 7.0)) + aPhase * 40.0);
+  vWarmth = fract(aPhase * 13.0);
+}
+`;
+
+export const starFragment = `
+precision highp float;
+
+varying float vAlpha;
+varying float vWarmth;
+
+void main() {
+  float distance = length(gl_PointCoord - 0.5);
+
+  float alpha = smoothstep(0.5, 0.12, distance) * vAlpha;
+
+  if (alpha < 0.01) discard;
+
+  // A slight spread of star colour, blue-white to warm white.
+  vec3 color = mix(vec3(0.75, 0.83, 1.0), vec3(1.0, 0.93, 0.82), vWarmth);
+
+  gl_FragColor = vec4(color, alpha * 0.85);
 }
 `;
 
