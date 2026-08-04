@@ -225,9 +225,23 @@ body {
   }
 }
 
-// Below that width the rail becomes a drawer, opened from the header.
+// The bar holding the drawer toggle: only exists on screens where the rail
+// is collapsed. It must never live inside the rail itself — a hidden drawer
+// cannot contain its own "open" button.
+.mtl-admin__menubar {
+  display: none;
+  margin: 0;
+  padding: var(--mtl-space-3) var(--mtl-space-4) 0;
+}
+
+// Below that width the rail becomes a drawer, opened from the bar above it.
 @media (max-width: 61.999rem) {
+  .mtl-admin__menubar {
+    display: block;
+  }
+
   .mtl-admin__rail {
+    border-block-end: 1px solid var(--mtl-border);
     border-inline-end: 0;
     display: none;
 

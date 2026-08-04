@@ -40,13 +40,18 @@ $groups = [
 <?= $this->include('partials/header') ?>
 
 <div class="mtl-admin">
-    <nav class="mtl-admin__rail" aria-label="<?= e(__('nav.admin')) ?>">
-        <p class="u-hide--large" style="margin-block-end: var(--mtl-space-3);">
-            <button type="button" class="p-button--base" data-admin-menu-toggle aria-expanded="true">
-                <?= icon('menu', 18) ?> <?= e(__('app.menu')) ?>
-            </button>
-        </p>
+    <?php // The drawer toggle lives OUTSIDE the rail it opens. It used to sit
+          // inside, where the phone layout hid the rail — and with it the only
+          // button that could show it, leaving the whole management area
+          // unreachable from a phone. ?>
+    <p class="mtl-admin__menubar">
+        <button type="button" class="p-button--base" data-admin-menu-toggle aria-expanded="false"
+                style="margin: 0;">
+            <?= icon('menu', 18) ?> <?= e(__('app.menu')) ?>
+        </button>
+    </p>
 
+    <nav class="mtl-admin__rail" aria-label="<?= e(__('nav.admin')) ?>">
         <?php foreach ($groups as $heading => $links): ?>
             <?php
             // Hide a whole group when the visitor may reach none of its items.
