@@ -42,7 +42,8 @@ $links = [
         <?php if ($logoId > 0): ?>
             <img src="<?= e(path('/media/thumb/' . $logoId)) ?>" alt="" width="28" height="28">
         <?php else: ?>
-            <?= icon('globe', 24) ?>
+            <?php // The house mark: the Zetstenen world, from assets/branding. ?>
+            <img src="<?= e(asset('branding/mtl-zetstenen.svg')) ?>" alt="" width="28" height="28">
         <?php endif; ?>
         <span><?= e(SettingsService::string('site.title', 'MTL')) ?></span>
     </a>

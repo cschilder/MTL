@@ -213,4 +213,39 @@ writeFileSync('assets/branding/mtl-app-icon.svg', svg(96, 96, `  <rect width="96
   <circle cx="76" cy="69" r="6.2" fill="${C.red}"/>
   <circle cx="76" cy="69" r="2.6" fill="${C.white}"/>`));
 
-console.log('written: assets/branding/*.svg');
+// ---------------------------------------------------------------------------
+// The chosen identity: the Zetstenen world, in every shape the app needs.
+// ---------------------------------------------------------------------------
+
+// The favicon: the globe alone, transparent behind it, so it sits on any tab.
+writeFileSync('assets/icons/favicon.svg', svg(96, 96, stonesGlobe));
+
+// The app tile: globe on the rounded navy tile with a whisper of stars.
+const stars = `  <circle cx="14" cy="14" r="1.5" fill="${C.white}" opacity=".65"/>
+  <circle cx="84" cy="20" r="1.2" fill="${C.white}" opacity=".5"/>
+  <circle cx="20" cy="84" r="1.2" fill="${C.white}" opacity=".5"/>
+  <circle cx="86" cy="78" r="1" fill="${C.white}" opacity=".4"/>`;
+
+const tileGlobe = (scale) => `  <g transform="translate(48 48) scale(${scale}) translate(-48 -48)">
+${stonesGlobe}
+  </g>`;
+
+writeFileSync('assets/branding/mtl-zetstenen-tile.svg', svg(96, 96, `  <rect width="96" height="96" rx="21" fill="${C.navy}"/>
+${stars}
+${tileGlobe(0.8)}`));
+
+// Round launcher icons: same, on a navy disc.
+writeFileSync('assets/branding/mtl-zetstenen-round.svg', svg(96, 96, `  <circle cx="48" cy="48" r="48" fill="${C.navy}"/>
+${stars}
+${tileGlobe(0.76)}`));
+
+// Maskable/adaptive: full-bleed navy, the globe inside the safe zone.
+writeFileSync('assets/branding/mtl-zetstenen-maskable.svg', svg(96, 96, `  <rect width="96" height="96" fill="${C.navy}"/>
+${stars}
+${tileGlobe(0.62)}`));
+
+// Android adaptive foreground: transparent, extra margin — the launcher
+// crops deep into this layer.
+writeFileSync('assets/branding/mtl-zetstenen-foreground.svg', svg(96, 96, tileGlobe(0.44)));
+
+console.log('written: assets/branding/*.svg + assets/icons/favicon.svg');
