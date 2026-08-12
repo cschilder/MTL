@@ -351,6 +351,17 @@
 // -----------------------------------------------------------------------------
 
 @media (max-width: 40rem) {
+  // A blur over a WebGL canvas forces the phone GPU to re-filter the whole
+  // strip every frame the globe animates — a steady source of stutter on
+  // mid-range Androids. A slightly more opaque flat fill reads the same and
+  // costs nothing.
+  .mtl-globe__controls,
+  .mtl-globe__timeline,
+  .mtl-globe__layers {
+    backdrop-filter: none;
+    background: rgb(10 14 24 / 88%);
+  }
+
   .mtl-globe__layers {
     inset-block-start: auto;
     inset-block-end: calc(var(--mtl-space-4) + var(--mtl-touch) + var(--mtl-space-3) + env(safe-area-inset-bottom));

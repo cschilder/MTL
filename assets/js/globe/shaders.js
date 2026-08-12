@@ -248,9 +248,11 @@ void main() {
 
   // A dashed travel line, in the itinerary-on-a-map tradition. The pattern is
   // cut along the accumulated arc so every dash is the same length on the
-  // ground: one cycle per 1.6 degrees of arc, just over half of it drawn.
-  // Cheap smoothsteps on both dash edges keep the cuts from shimmering.
-  float cycle = fract(vArc / 0.028);
+  // ground: one cycle per ~0.7 degrees of arc, just over half of it drawn —
+  // dense enough that even a short flight reads as a dotted line, not two
+  // stray marks. Cheap smoothsteps on both dash edges keep the cuts from
+  // shimmering.
+  float cycle = fract(vArc / 0.012);
   float dash = smoothstep(0.0, 0.10, cycle) * (1.0 - smoothstep(0.55, 0.65, cycle));
 
   float alpha = uOpacity * edge * dash;
@@ -432,6 +434,80 @@ void main() {
   vec3 color = mix(vec3(0.75, 0.83, 1.0), vec3(1.0, 0.93, 0.82), vWarmth);
 
   gl_FragColor = vec4(color, alpha * 0.85);
+}
+`;
+
+/**
+ * Flight sprites: a small textured quad on the midpoint of a long leg,
+ * rotated in screen space so the plane's nose follows the route. The same
+ * clip-space trick as the route ribbon keeps it a constant size on screen.
+ */
+export const planeVertex = `
+precision highp float;
+
+attribute vec3 aCentre;
+attribute vec2 aCorner;
+attribute vec3 aDirection;
+attribute float aTime;
+
+uniform mat4 uViewProjection;
+uniform mat4 uModel;
+uniform vec2 uViewport;
+uniform vec3 uCameraPosition;
+uniform float uSize;     // half-size, in pixels
+uniform float uNow;
+uniform float uUseTime;
+
+varying vec2 vUv;
+varying float vFacing;
+varying float vVisible;
+
+void main() {
+  vec4 world = uModel * vec4(aCentre, 1.0);
+  vec4 clip = uViewProjection * world;
+
+  vec3 normal = normalize(world.xyz);
+  vFacing = dot(normal, normalize(uCameraPosition - world.xyz));
+
+  vVisible = uUseTime > 0.5 ? step(aTime, uNow) : 1.0;
+
+  vec4 aheadClip = uViewProjection * (uModel * vec4(aCentre + aDirection * 0.01, 1.0));
+
+  vec2 here = clip.xy / max(clip.w, 0.0001);
+  vec2 ahead = aheadClip.xy / max(aheadClip.w, 0.0001);
+
+  vec2 tangent = normalize((ahead - here) * uViewport);
+  vec2 side = vec2(-tangent.y, tangent.x);
+
+  vec2 offset = (tangent * aCorner.x + side * aCorner.y) * uSize / uViewport * clip.w;
+  clip.xy += offset * 2.0;
+
+  // The texture has the nose pointing +X; corner x runs along the tangent.
+  vUv = vec2(aCorner.x * 0.5 + 0.5, 0.5 - aCorner.y * 0.5);
+
+  gl_Position = clip;
+}
+`;
+
+export const planeFragment = `
+precision highp float;
+
+uniform sampler2D uSprite;
+
+varying vec2 vUv;
+varying float vFacing;
+varying float vVisible;
+
+void main() {
+  if (vVisible < 0.5 || vFacing < 0.02) discard;
+
+  vec4 sample_ = texture2D(uSprite, vUv);
+
+  float alpha = sample_.a * 0.92 * smoothstep(0.02, 0.25, vFacing);
+
+  if (alpha < 0.01) discard;
+
+  gl_FragColor = vec4(sample_.rgb, alpha);
 }
 `;
 

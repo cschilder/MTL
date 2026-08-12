@@ -23,6 +23,7 @@ import {
 import {
   createSphere, parseLineGeometry, createGraticule, createStars,
   createRouteRibbon, createMarkerGeometry, createMarkerStems,
+  createFlightSprites,
 } from './geometry.js';
 import * as shaders from './shaders.js';
 import { OrbitControls } from './controls.js';
@@ -143,6 +144,7 @@ export class Globe {
       marker: createProgram(gl, shaders.markerVertex, shaders.markerFragment, 'marker'),
       atmosphere: createProgram(gl, shaders.atmosphereVertex, shaders.atmosphereFragment, 'atmosphere'),
       star: createProgram(gl, shaders.starVertex, shaders.starFragment, 'star'),
+      plane: createProgram(gl, shaders.planeVertex, shaders.planeFragment, 'plane'),
     };
   }
 
@@ -264,6 +266,37 @@ export class Globe {
       })
       .filter(Boolean);
 
+    // One plane sprite on the midpoint of every long leg, across all trips.
+    const flightParts = this.trips.map((trip) =>
+      createFlightSprites(trip.steps.map((s) => ({ lat: s.lat, lon: s.lon, t: s.t })))
+    ).filter((part) => part.count > 0);
+
+    const flightCount = flightParts.reduce((sum, part) => sum + part.count, 0);
+
+    if (flightCount > 0) {
+      const joined = (key, stride) => {
+        const merged = new Float32Array(flightCount * stride);
+        let at = 0;
+        for (const part of flightParts) {
+          merged.set(part[key], at);
+          at += part[key].length;
+        }
+        return merged;
+      };
+
+      this.flights = {
+        centres: createBuffer(gl, joined('centres', 3)),
+        corners: createBuffer(gl, joined('corners', 2)),
+        directions: createBuffer(gl, joined('directions', 3)),
+        times: createBuffer(gl, joined('times', 1)),
+        count: flightCount,
+      };
+
+      this.planeTexture = this.createPlaneTexture();
+    } else {
+      this.flights = null;
+    }
+
     this.markerBuffers = {
       centres: gl.createBuffer(),
       corners: gl.createBuffer(),
@@ -285,6 +318,53 @@ export class Globe {
     // plain discs immediately and swaps them for thumbnails when the atlas is
     // ready, so a slow photo never delays the planet.
     this.buildThumbAtlas().catch((error) => console.warn('Globe thumbnails skipped', error));
+  }
+
+  /**
+   * The plane silhouette, drawn once onto a small canvas: no image asset,
+   * and the sprite stays crisp at any pixel ratio worth having.
+   */
+  createPlaneTexture() {
+    const gl = this.gl;
+    const size = 64;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+
+    const context = canvas.getContext('2d');
+    context.translate(size / 2, size / 2);
+    context.scale(size / 64, size / 64);
+    context.fillStyle = '#ffffff';
+    context.strokeStyle = 'rgba(11, 16, 35, 0.9)';
+    context.lineWidth = 2.5;
+    context.lineJoin = 'round';
+
+    // Nose along +X: fuselage, swept wings, tail.
+    const shape = [
+      [30, 0], [22, 4], [7, 4], [-5, 24], [-12, 24], [-4, 4],
+      [-16, 4], [-21, 10], [-26, 10], [-22, 2],
+      [-22, -2], [-26, -10], [-21, -10], [-16, -4],
+      [-4, -4], [-12, -24], [-5, -24], [7, -4], [22, -4],
+    ];
+
+    context.beginPath();
+    context.moveTo(shape[0][0], shape[0][1]);
+    for (const [x, y] of shape.slice(1)) context.lineTo(x, y);
+    context.closePath();
+    context.stroke();
+    context.fill();
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    return texture;
   }
 
   /**
@@ -972,9 +1052,24 @@ export class Globe {
     this.drawLines(this.borders, [0.55, 0.62, 0.70], 0.22);
     this.drawLines(this.coast, [0.78, 0.86, 0.94], 0.55);
 
+    // Translucent overlays never write depth. They still test against the
+    // sphere, so the far hemisphere hides them, but they cannot occlude each
+    // other: stacked markers over a dense cluster of stops were z-fighting,
+    // which read as flicker on every frame the camera moved.
+    //
+    // Culling is off for the same passes. A ribbon extruded in screen space
+    // winds clockwise or anticlockwise depending on which way the journey
+    // happens to run across the screen, so with back-face culling a route
+    // could vanish wholesale — the missing dotted line between distant stops.
+    gl.depthMask(false);
+    gl.disable(gl.CULL_FACE);
     this.drawRoutes(width, height);
+    this.drawPlanes(width, height);
     this.drawStems();
     this.drawMarkers();
+    gl.enable(gl.CULL_FACE);
+    gl.depthMask(true);
+
     this.drawAtmosphere();
 
     gl.disable(gl.BLEND);
@@ -1082,8 +1177,15 @@ export class Globe {
       bindAttribute(gl, attributes.aTime, route.buffers.times, 1);
       bindAttribute(gl, attributes.aArc, route.buffers.arcs, 1);
 
-      gl.uniform3fv(uniforms.uColor, route.colour);
-      gl.uniform1f(uniforms.uOpacity, 0.85);
+      // Lifted towards white: trip palettes lean dark, and a dark dash on the
+      // night-blue ocean was invisible on a phone in daylight.
+      gl.uniform3f(
+        uniforms.uColor,
+        route.colour[0] + (1 - route.colour[0]) * 0.35,
+        route.colour[1] + (1 - route.colour[1]) * 0.35,
+        route.colour[2] + (1 - route.colour[2]) * 0.35
+      );
+      gl.uniform1f(uniforms.uOpacity, 0.92);
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, route.count);
     }
@@ -1093,6 +1195,45 @@ export class Globe {
     disableAttribute(gl, attributes.aProgress);
     disableAttribute(gl, attributes.aTime);
     disableAttribute(gl, attributes.aArc);
+  }
+
+  /**
+   * A small aeroplane at the midpoint of every long leg, nose along the
+   * route. Constant pixel size, so it reads at any zoom without swallowing
+   * the globe.
+   */
+  drawPlanes(width, height) {
+    if (!this.flights || !this.planeTexture) return;
+
+    const gl = this.gl;
+    const { program, uniforms, attributes } = this.programs.plane;
+
+    gl.useProgram(program);
+
+    bindAttribute(gl, attributes.aCentre, this.flights.centres, 3);
+    bindAttribute(gl, attributes.aCorner, this.flights.corners, 2);
+    bindAttribute(gl, attributes.aDirection, this.flights.directions, 3);
+    bindAttribute(gl, attributes.aTime, this.flights.times, 1);
+
+    gl.uniformMatrix4fv(uniforms.uViewProjection, false, this.matrices.viewProjection);
+    gl.uniformMatrix4fv(uniforms.uModel, false, this.matrices.model);
+    gl.uniform2f(uniforms.uViewport, width, height);
+    gl.uniform3fv(uniforms.uCameraPosition, this.cameraPosition);
+    gl.uniform1f(uniforms.uSize, 12 * Math.min(window.devicePixelRatio || 1, 2));
+    gl.uniform1f(uniforms.uNow, this.timeEnabled ? this.now : 0);
+    gl.uniform1f(uniforms.uUseTime, this.timeEnabled ? 1 : 0);
+
+    // Unit 2: 0 carries the land mask and 1 the thumbnail atlas.
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.planeTexture);
+    gl.uniform1i(uniforms.uSprite, 2);
+    gl.activeTexture(gl.TEXTURE0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, this.flights.count);
+
+    disableAttribute(gl, attributes.aCorner);
+    disableAttribute(gl, attributes.aDirection);
+    disableAttribute(gl, attributes.aTime);
   }
 
   drawStems() {
@@ -1147,8 +1288,14 @@ export class Globe {
     gl.uniform3f(uniforms.uCameraUp, view[1], view[5], view[9]);
     gl.uniform3fv(uniforms.uCameraPosition, this.cameraPosition);
 
-    // Markers keep a roughly constant screen size as the viewer zooms.
-    gl.uniform1f(uniforms.uScale, Math.max(0.6, Math.min(2.2, this.controls.distance / 2.4)));
+    // Marker size follows the camera's height above the surface, not its
+    // distance from the centre. Near the ground that difference matters: a
+    // distance-based scale bottomed out well above zero, so a cluster of
+    // nearby stops stayed one overlapping blob however far the viewer zoomed
+    // in. Height-proportional scaling lets them separate.
+    const height_ = this.controls.distance - 1;
+
+    gl.uniform1f(uniforms.uScale, Math.max(0.16, Math.min(2.2, height_ * 0.61)));
     gl.uniform1f(uniforms.uHovered, this.hoveredIndex);
     gl.uniform1f(uniforms.uSelected, this.selectedIndex);
 

@@ -22,7 +22,9 @@ export class OrbitControls {
     this.pitch = options.pitch ?? 20 * DEGREES;
     this.distance = options.distance ?? 3.2;
 
-    this.minDistance = options.minDistance ?? 1.15;
+    // Close enough to separate stops that sit a town apart: at 1.06 the
+    // camera hovers ~380 km over the surface.
+    this.minDistance = options.minDistance ?? 1.06;
     this.maxDistance = options.maxDistance ?? 8;
 
     // Beyond this the camera crosses the pole and the view flips, which is
@@ -149,10 +151,11 @@ export class OrbitControls {
       this.moved = true;
     }
 
-    // Drag sensitivity scales with the zoom level: at close range the same
-    // finger movement should cover far less of the surface, or the globe
-    // becomes impossible to aim.
-    const sensitivity = 0.005 * Math.min(1, (this.distance - 1) / 2 + 0.25);
+    // Drag sensitivity tracks the height above the surface, not the raw
+    // distance: what a finger movement should cover is the visible patch of
+    // ground, and that shrinks towards zero as the camera descends. The old
+    // floor of 25% made a zoomed-in globe shoot past whole cities per pixel.
+    const sensitivity = 0.005 * Math.min(1, Math.max(0.02, (this.distance - 1) / 2.2));
 
     this.yaw -= deltaX * sensitivity;
     this.pitch += deltaY * sensitivity;
@@ -259,7 +262,17 @@ export class OrbitControls {
   // -------------------------------------------------------------------------
 
   zoomBy(factor) {
-    this.distance = Math.max(this.minDistance, Math.min(this.maxDistance, this.distance * factor));
+    // The factor applies to the height above the surface rather than to the
+    // distance from the core. Multiplying the raw distance feels fine far
+    // out but turns violent close in — the last centimetres of zoom covered
+    // kilometres of height, which is the "scrolling is impossible" feel.
+    const height = (this.distance - 1) * factor;
+
+    this.distance = Math.max(
+      this.minDistance,
+      Math.min(this.maxDistance, 1 + height)
+    );
+
     this.onChange();
   }
 

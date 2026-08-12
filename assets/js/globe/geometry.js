@@ -354,6 +354,62 @@ export function createRouteRibbon(stops, radius = 1.004) {
 }
 
 /**
+ * A plane sprite on the midpoint of every long leg of a route.
+ *
+ * Polarsteps' idiom: a hop between neighbouring towns is just a dotted line,
+ * but a leg long enough to have been a flight gets a little plane at its
+ * middle, nose along the direction of travel. "Long enough" defaults to two
+ * degrees of arc — roughly Amsterdam–Paris.
+ *
+ * @param {Array<{lat:number, lon:number, t:number|null}>} stops
+ * @returns {{centres: Float32Array, corners: Float32Array, directions: Float32Array, times: Float32Array, count: number}}
+ */
+export function createFlightSprites(stops, minimumArc = 0.035, radius = 1.012) {
+  const quad = [
+    [-1, -1], [1, -1], [1, 1],
+    [-1, -1], [1, 1], [-1, 1],
+  ];
+
+  const centres = [];
+  const corners = [];
+  const directions = [];
+  const times = [];
+
+  for (let i = 0; i < stops.length - 1; i += 1) {
+    const from = [stops[i].lat, stops[i].lon];
+    const to = [stops[i + 1].lat, stops[i + 1].lon];
+
+    if (angularDistance(from, to) < minimumArc) continue;
+
+    const centre = greatCirclePoint(from, to, 0.5, radius, [0, 0, 0]);
+    const ahead = greatCirclePoint(from, to, 0.52, radius, [0, 0, 0]);
+
+    const dx = ahead[0] - centre[0];
+    const dy = ahead[1] - centre[1];
+    const dz = ahead[2] - centre[2];
+    const length = Math.hypot(dx, dy, dz) || 1;
+
+    // The plane appears once the leg has been travelled in the timeline.
+    const time = stops[i + 1].t ?? stops[i].t ?? 0;
+
+    for (const [cx, cy] of quad) {
+      centres.push(centre[0], centre[1], centre[2]);
+      corners.push(cx, cy);
+      directions.push(dx / length, dy / length, dz / length);
+      times.push(time);
+    }
+  }
+
+  return {
+    centres: new Float32Array(centres),
+    corners: new Float32Array(corners),
+    directions: new Float32Array(directions),
+    times: new Float32Array(times),
+    count: centres.length / 3,
+  };
+}
+
+/**
  * Marker geometry: two triangles per stop, expanded into a screen-facing
  * square by the vertex shader.
  *
