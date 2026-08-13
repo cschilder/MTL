@@ -51,12 +51,14 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
         // Media responses are streamed and must not carry a document policy.
         if (!str_starts_with($request->path, '/media/')) {
             $headers['Content-Security-Policy'] = $this->contentSecurityPolicy(
-                // The management screens may talk to the geocoder directly:
-                // when the *server* cannot reach Nominatim (some shared hosts
-                // block outbound requests), the author's own browser takes
-                // over the lookup. Only there — the public site's policy
-                // stays fully self-contained.
-                allowGeocoder: str_starts_with($request->path, '/admin')
+                // The management screens get two carve-outs the public site
+                // does not: the browser may talk to the geocoder directly
+                // (when the *server* cannot reach Nominatim — some shared
+                // hosts block outbound requests — the author's own browser
+                // takes over the lookup), and the report editor may embed
+                // StackEdit in an iframe. Only there — the public site's
+                // policy stays fully self-contained.
+                management: str_starts_with($request->path, '/admin')
             );
         }
 
@@ -73,13 +75,21 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
         return $response->withHeaders($headers);
     }
 
-    private function contentSecurityPolicy(bool $allowGeocoder = false): string
+    private function contentSecurityPolicy(bool $management = false): string
     {
         $nonce = self::nonce();
 
-        $connect = $allowGeocoder
+        $connect = $management
             ? "connect-src 'self' https://nominatim.openstreetmap.org"
             : "connect-src 'self'";
+
+        // The StackEdit editing mode loads stackedit.io in an iframe overlay
+        // and exchanges the document over postMessage. The frame is the whole
+        // integration: no scripts, styles or requests from stackedit.io ever
+        // run in this page's own context.
+        $frame = $management
+            ? "frame-src 'self' https://stackedit.io"
+            : "frame-src 'self'";
 
         $directives = [
             "default-src 'self'",
@@ -100,6 +110,7 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
 
             "font-src 'self'",
             $connect,
+            $frame,
             "worker-src 'self' blob:",
             "manifest-src 'self'",
             "frame-ancestors 'self'",

@@ -391,6 +391,7 @@ return [
     'js.editor.table'        => 'Tabel',
     'js.editor.image'        => 'Afbeelding invoegen',
     'js.editor.source'       => 'Markdown bewerken',
+    'js.editor.stackedit'    => 'Bewerken in StackEdit',
     'js.editor.rich'         => 'Opgemaakt bewerken',
     'js.editor.preview'      => 'Voorbeeld',
     'js.editor.placeholder'  => 'Schrijf je reisverslag…',

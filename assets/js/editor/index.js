@@ -14,6 +14,7 @@
  */
 
 import { htmlToMarkdown } from './serializer.js';
+import { Stackedit } from './stackedit.js';
 import { request, notify, t } from '../lib/api.js';
 
 const AUTOSAVE_DELAY = 4000;
@@ -40,6 +41,14 @@ export class MarkdownEditor {
     this.dirty = false;
     this.previewTimer = null;
     this.autosaveTimer = null;
+
+    /** The StackEdit overlay, created on first use. */
+    this.stackedit = null;
+
+    // When StackEdit is the preferred editor, the overlay opens the moment the
+    // author starts editing the report — not on page load, because these forms
+    // are just as often opened to fix a title or a coordinate.
+    this.stackeditOnFocus = this.mode === 'stackedit';
 
     // The undo stack for source mode. The rich surface uses the browser's own.
     this.history = [];
@@ -111,7 +120,11 @@ export class MarkdownEditor {
     this.mode = mode;
 
     this.surface.hidden = mode !== 'rich';
-    this.source.hidden = mode !== 'source';
+
+    // In StackEdit mode the textarea stays visible under the overlay: it is
+    // what the author lands on after closing StackEdit, and what carries the
+    // report when the overlay cannot load (offline, blocked).
+    this.source.hidden = mode !== 'source' && mode !== 'stackedit';
 
     if (this.preview) {
       this.preview.hidden = mode !== 'preview';
@@ -121,18 +134,26 @@ export class MarkdownEditor {
       button.setAttribute('aria-pressed', String(button.dataset.editorModeButton === mode));
     });
 
-    // Formatting buttons only apply to the rich surface.
+    // Formatting buttons only apply to the rich surface and the source view;
+    // StackEdit brings its own toolbar.
     this.element.querySelectorAll('[data-command]').forEach((button) => {
-      button.disabled = mode === 'preview';
+      button.disabled = mode === 'preview' || mode === 'stackedit';
     });
 
     if (mode === 'rich' && !initial) {
       await this.refreshSurfaceFromMarkdown();
     }
 
-    if (mode === 'source') {
+    if (mode === 'source' || mode === 'stackedit') {
       this.source.value = this.field.value;
+    }
+
+    if (mode === 'source') {
       this.source.focus();
+    }
+
+    if (mode === 'stackedit' && !initial) {
+      this.openStackedit();
     }
 
     if (mode === 'preview') {
@@ -142,6 +163,47 @@ export class MarkdownEditor {
     if (mode === 'rich') {
       this.surface.focus();
     }
+
+    // The chosen editor is a personal preference worth remembering, the same
+    // way the theme is. The server keeps its own whitelist, so transient
+    // states such as the preview are simply not stored.
+    if (!initial && window.MTL?.signedIn) {
+      request(`${window.MTL.base ?? ''}/admin/profile/preferences`, {
+        method: 'POST',
+        body: JSON.stringify({ editor_mode: mode }),
+      }).catch(() => {
+        // A preference that failed to save still applies for this visit.
+      });
+    }
+  }
+
+  /**
+   * Opens the report in StackEdit, in an overlay over the form.
+   *
+   * The overlay talks back over postMessage: every edit lands in the form
+   * field immediately, so closing the overlay and saving the form is enough —
+   * there is no separate export step.
+   */
+  openStackedit() {
+    if (!this.stackedit) {
+      this.stackedit = new Stackedit();
+
+      this.stackedit.on('fileChange', (file) => {
+        const text = file?.content?.text ?? '';
+
+        if (text === this.field.value) return;
+
+        this.field.value = text;
+        this.source.value = text;
+        this.field.dispatchEvent(new Event('input', { bubbles: true }));
+        this.markDirty();
+      });
+    }
+
+    this.stackedit.openFile({
+      name: document.title || 'MTL',
+      content: { text: this.field.value },
+    });
   }
 
   /**
@@ -289,6 +351,17 @@ export class MarkdownEditor {
   }
 
   bindSource() {
+    // StackEdit as the preferred editor: the first move into the report opens
+    // the overlay. Only the first — an author who closed StackEdit to type in
+    // the plain textarea is not fought over it, and the toolbar button
+    // reopens it at any moment.
+    this.source.addEventListener('focus', () => {
+      if (!this.stackeditOnFocus) return;
+
+      this.stackeditOnFocus = false;
+      this.openStackedit();
+    });
+
     this.source.addEventListener('input', () => {
       this.field.value = this.source.value;
       this.markDirty();

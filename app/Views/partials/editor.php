@@ -106,6 +106,11 @@ $groups = [
                     title="<?= e(__('js.editor.source')) ?>" aria-label="<?= e(__('js.editor.source')) ?>">
                 <?= icon('markdown', 18) ?>
             </button>
+            <button type="button" class="mtl-editor__tool" data-editor-mode-button="stackedit"
+                    aria-pressed="<?= $mode === 'stackedit' ? 'true' : 'false' ?>"
+                    title="<?= e(__('js.editor.stackedit')) ?>" aria-label="<?= e(__('js.editor.stackedit')) ?>">
+                <?= icon('external', 18) ?>
+            </button>
             <button type="button" class="mtl-editor__tool" data-editor-mode-button="preview"
                     aria-pressed="false"
                     title="<?= e(__('js.editor.preview')) ?>" aria-label="<?= e(__('js.editor.preview')) ?>">

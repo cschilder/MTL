@@ -390,6 +390,7 @@ return [
     'js.editor.table'        => 'Table',
     'js.editor.image'        => 'Insert image',
     'js.editor.source'       => 'Edit markdown',
+    'js.editor.stackedit'    => 'Edit in StackEdit',
     'js.editor.rich'         => 'Edit formatted',
     'js.editor.preview'      => 'Preview',
     'js.editor.placeholder'  => 'Write your travel report…',

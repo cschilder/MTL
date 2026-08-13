@@ -128,7 +128,7 @@ final class ProfileController extends Controller
 
         $allowed = [
             'theme'        => ['auto', 'light', 'dark'],
-            'editor.mode'  => ['rich', 'source'],
+            'editor.mode'  => ['rich', 'source', 'stackedit'],
             'globe.layer'  => ['none', 'photos', 'rating', 'altitude', 'temperature'],
             'media.view'   => ['grid', 'list'],
         ];
