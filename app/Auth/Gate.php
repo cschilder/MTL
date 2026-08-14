@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace MTL\Auth;
 
 use MTL\Models\Model;
+use MTL\Models\Step;
+use MTL\Models\Trip;
 use MTL\Models\User;
+use MTL\Services\CollaborationService;
 
 defined('MTL_APP') || exit;
 
@@ -31,7 +34,7 @@ final class Gate
 
         User::ROLE_EDITOR => [
             'admin.access',
-            'trip.create', 'trip.update', 'trip.delete', 'trip.publish',
+            'trip.create', 'trip.update', 'trip.delete', 'trip.publish', 'trip.share',
             'step.create', 'step.update', 'step.delete', 'step.publish',
             'album.create', 'album.update', 'album.delete',
             'media.upload', 'media.update', 'media.delete',
@@ -59,10 +62,23 @@ final class Gate
      * @var list<string>
      */
     private const OWNER_PERMISSIONS = [
-        'trip.update', 'trip.delete', 'trip.publish',
+        'trip.update', 'trip.delete', 'trip.publish', 'trip.share',
         'step.update', 'step.delete', 'step.publish',
         'album.update', 'album.delete',
         'media.update', 'media.delete',
+    ];
+
+    /**
+     * Permissions a travel companion holds over the trip they are linked to
+     * (and its stops). Editing, in full — but never trip.delete, trip.publish
+     * or trip.share: whose trip it is, who sees it, and who else may join
+     * stay with the owner.
+     *
+     * @var list<string>
+     */
+    private const COLLABORATOR_PERMISSIONS = [
+        'trip.update',
+        'step.create', 'step.update', 'step.delete', 'step.publish',
     ];
 
     /**
@@ -80,14 +96,51 @@ final class Gate
             return true;
         }
 
+        // Creating a stop *in a particular trip* is not a general ability but
+        // an act on that trip: it follows trip.update. Without this, any
+        // author could add stops to journeys that are none of theirs.
+        if ($permission === 'step.create' && $subject instanceof Trip) {
+            return self::allows($user, 'trip.update', $subject);
+        }
+
         if (in_array($permission, $granted, true)) {
             // Even a permission granted outright is refused on a record that
             // belongs to someone with more authority.
             return self::subjectIsReachable($user, $subject);
         }
 
-        if ($subject !== null && in_array($permission, self::OWNER_PERMISSIONS, true)) {
-            return self::owns($user, $subject);
+        if ($subject !== null && in_array($permission, self::OWNER_PERMISSIONS, true) && self::owns($user, $subject)) {
+            return true;
+        }
+
+        // Travel companions: linked to a trip, a member edits it as if it
+        // were their own — whatever their role says otherwise.
+        if (in_array($permission, self::COLLABORATOR_PERMISSIONS, true) && self::collaborates($user, $subject)) {
+            return true;
+        }
+
+        // A companion also needs the door to the management screens and a way
+        // to add their own photos, even when their role (a fresh registration
+        // is a viewer) grants neither.
+        if (in_array($permission, ['admin.access', 'media.upload'], true)) {
+            return CollaborationService::hasAny($user);
+        }
+
+        return false;
+    }
+
+    /**
+     * True when $user is linked to $subject as a travel companion — directly
+     * for a trip, through the parent trip for a stop.
+     */
+    public static function collaborates(?User $user, mixed $subject): bool
+    {
+        if ($subject instanceof Trip) {
+            return CollaborationService::isCollaborator($user, $subject->id());
+        }
+
+        if ($subject instanceof Step) {
+            return CollaborationService::isCollaborator($user, $subject->int('trip_id'));
         }
 
         return false;
@@ -145,7 +198,7 @@ final class Gate
             return true;
         }
 
-        return self::owns($user, $subject);
+        return self::owns($user, $subject) || self::collaborates($user, $subject);
     }
 
     /**

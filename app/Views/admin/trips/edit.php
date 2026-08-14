@@ -240,6 +240,68 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
     </form>
 <?php endif; ?>
 
+<?php // ---- Travel companions ------------------------------------------------ ?>
+<?php
+// Linked members edit this trip and its stops as if it were their own.
+// Managing the links is for the owner (and editors/admins); a companion sees
+// the list but not the buttons.
+?>
+<?php if (!$isNew): ?>
+    <section style="margin-block-start: var(--mtl-space-7);">
+        <div class="mtl-page-head">
+            <h2><?= e(__('trip.collaborators')) ?></h2>
+        </div>
+
+        <p class="mtl-muted"><?= e(__('trip.collaborators_help')) ?></p>
+
+        <?php if (($collaborators ?? []) === []): ?>
+            <p class="mtl-muted"><?= e(__('trip.collaborators_none')) ?></p>
+        <?php else: ?>
+            <ul class="p-list--divided">
+                <?php foreach ($collaborators ?? [] as $member): ?>
+                    <li class="p-list__item mtl-row">
+                        <span>
+                            <?= icon('user', 16) ?>
+                            <?= e($member->string('name')) ?>
+                            <span class="mtl-muted"><?= e($member->string('email')) ?></span>
+                        </span>
+
+                        <?php if ($canShare ?? false): ?>
+                            <form method="post" class="mtl-spacer"
+                                  action="<?= e(path('/admin/trips/' . $trip->id() . '/collaborators/' . $member->id() . '/delete')) ?>">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="p-button--negative is-small" style="margin: 0;">
+                                    <?= e(__('trip.collaborator_remove')) ?>
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+
+        <?php if (($canShare ?? false) && ($candidates ?? []) !== []): ?>
+            <form method="post" class="mtl-row"
+                  action="<?= e(path('/admin/trips/' . $trip->id() . '/collaborators')) ?>">
+                <?= csrf_field() ?>
+
+                <label for="collaborator-user" class="mtl-visually-hidden"><?= e(__('trip.collaborator_add')) ?></label>
+                <select id="collaborator-user" name="user_id" style="margin: 0; max-inline-size: 20rem;">
+                    <?php foreach ($candidates as $candidate): ?>
+                        <option value="<?= $candidate->id() ?>">
+                            <?= e($candidate->string('name')) ?> (<?= e($candidate->string('email')) ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <button type="submit" class="p-button" style="margin: 0;">
+                    <?= icon('plus', 16) ?> <?= e(__('trip.collaborator_add')) ?>
+                </button>
+            </form>
+        <?php endif; ?>
+    </section>
+<?php endif; ?>
+
 <?php // ---- Stops ------------------------------------------------------------ ?>
 <?php if (!$isNew): ?>
     <section style="margin-block-start: var(--mtl-space-7);">

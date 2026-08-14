@@ -11,6 +11,8 @@ use MTL\Http\Controllers\Controller;
 use MTL\Models\Album;
 use MTL\Models\Tag;
 use MTL\Models\Trip;
+use MTL\Models\User;
+use MTL\Services\CollaborationService;
 use MTL\Services\StepService;
 use MTL\Services\TripService;
 
@@ -48,7 +50,14 @@ final class TripAdminController extends Controller
         $query = Trip::query()->latest('updated_at');
 
         if (!$user->isEditor()) {
-            $query->where('user_id', '=', $user->id());
+            // Their own journeys, plus every journey they are linked to as a
+            // travel companion.
+            $shared = CollaborationService::tripIdsFor($user);
+
+            $query->whereGroup(static function (QueryBuilder $q) use ($user, $shared): void {
+                $q->where('user_id', '=', $user->id());
+                $q->whereIn('id', $shared, 'OR');
+            });
         }
 
         // The bin is a separate view, not a filter that quietly includes
@@ -118,18 +127,81 @@ final class TripAdminController extends Controller
 
         $this->authorize('trip.update', $trip);
 
+        $canShare = $this->auth()->can('trip.share', $trip);
+
         return view('admin/trips/edit', [
-            'title'   => $trip->string('title'),
-            'noindex' => true,
-            'trip'    => $trip,
-            'steps'   => $trip->steps(),
-            'albums'  => Album::fromRows(
+            'title'         => $trip->string('title'),
+            'noindex'       => true,
+            'trip'          => $trip,
+            'steps'         => $trip->steps(),
+            'albums'        => Album::fromRows(
                 Album::active()->where('trip_id', '=', $trip->id())->orderBy('position')->get()
             ),
-            'tags'    => Tag::forSubject('trip', $trip->id()),
-            'cover'   => $trip->coverMedia(),
-            'action'  => path('/admin/trips/' . $trip->id()),
+            'tags'          => Tag::forSubject('trip', $trip->id()),
+            'cover'         => $trip->coverMedia(),
+            'action'        => path('/admin/trips/' . $trip->id()),
+            'collaborators' => CollaborationService::usersFor($trip),
+            'canShare'      => $canShare,
+            'candidates'    => $canShare ? $this->collaboratorCandidates($trip) : [],
         ]);
+    }
+
+    /**
+     * Links a registered member to the trip as a travel companion.
+     */
+    public function addCollaborator(Request $request): Response
+    {
+        /** @var Trip $trip */
+        $trip = $this->findOrFail(Trip::class, (int) $request->param('id', '0'));
+
+        $this->authorize('trip.share', $trip);
+
+        /** @var User $member */
+        $member = $this->findOrFail(User::class, (int) $request->input('user_id', 0));
+
+        if (!$member->isActive()) {
+            return $this->back($trip->editUrl(), __('trip.collaborator_inactive'), 'negative');
+        }
+
+        CollaborationService::add($trip, $member, $this->requireUser());
+
+        return $this->back($trip->editUrl(), __('trip.collaborator_added', ['name' => $member->string('name')]));
+    }
+
+    public function removeCollaborator(Request $request): Response
+    {
+        /** @var Trip $trip */
+        $trip = $this->findOrFail(Trip::class, (int) $request->param('id', '0'));
+
+        $this->authorize('trip.share', $trip);
+
+        /** @var User $member */
+        $member = $this->findOrFail(User::class, (int) $request->param('user', '0'));
+
+        CollaborationService::remove($trip, $member, $this->requireUser());
+
+        return $this->back($trip->editUrl(), __('trip.collaborator_removed', ['name' => $member->string('name')]));
+    }
+
+    /**
+     * Active members who could still be linked: everyone except the owner and
+     * those already linked.
+     *
+     * @return list<User>
+     */
+    private function collaboratorCandidates(Trip $trip): array
+    {
+        $taken = array_map(static fn (User $u): int => $u->id(), CollaborationService::usersFor($trip));
+        $taken[] = $trip->int('user_id');
+
+        $users = User::fromRows(
+            User::query()->where('status', '=', 'active')->orderBy('name')->get()
+        );
+
+        return array_values(array_filter(
+            $users,
+            static fn (User $u): bool => !in_array($u->id(), $taken, true)
+        ));
     }
 
     public function update(Request $request): Response

@@ -10,6 +10,7 @@ use MTL\Markdown\Markdown;
 use MTL\Models\Step;
 use MTL\Models\Trip;
 use MTL\Models\User;
+use MTL\Services\CollaborationService;
 use MTL\Support\Str;
 
 defined('MTL_APP') || exit;
@@ -55,14 +56,18 @@ final class TripService
             return $query;
         }
 
-        // An author sees everything public plus everything of their own.
-        return $query->whereGroup(static function (QueryBuilder $q) use ($user): void {
+        // An author sees everything public plus everything of their own —
+        // and every journey they are linked to as a travel companion.
+        $shared = CollaborationService::tripIdsFor($user);
+
+        return $query->whereGroup(static function (QueryBuilder $q) use ($user, $shared): void {
             $q->whereGroup(static function (QueryBuilder $inner): void {
                 $inner->where('status', '=', Trip::STATUS_PUBLISHED)
                     ->where('visibility', '=', Trip::VISIBILITY_PUBLIC);
             });
 
             $q->orWhere('user_id', '=', $user->id());
+            $q->whereIn('id', $shared, 'OR');
         });
     }
 
