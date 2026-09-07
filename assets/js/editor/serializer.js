@@ -295,11 +295,11 @@ function serialiseInline(node) {
     out += serialiseInlineNode(child);
   }
 
-  // A hard break is "two spaces, newline". The renderer pretty-prints its HTML,
-  // so the text node after a <br> starts with the newline that ended the source
-  // line — which turned one paragraph with a line break into two paragraphs.
-  // Whitespace directly after a break carries no meaning.
-  return out.replace(/ {2}\n[ \t]+/g, '  \n');
+  // The renderer pretty-prints its HTML, so the text node after a <br> starts
+  // with the newline that ended the source line; collapsed, that left a stray
+  // space at the start of the next line on every save. Whitespace on either
+  // side of a line break carries no meaning, in markdown or on screen.
+  return out.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n');
 }
 
 /**
@@ -380,9 +380,11 @@ function serialiseInlineNode(node) {
       return serialiseMedia(element, '');
 
     case 'br':
-      // Two trailing spaces are the markdown hard break; a backslash would
-      // also work but is less forgiving of an editor that trims lines.
-      return '  \n';
+      // A plain newline: the renderer treats every newline as a line break
+      // (the Slack dialect), so this is the exact source form and the round
+      // trip stays byte-stable. The two-trailing-spaces form would render
+      // the same but grows invisible spaces on every save.
+      return '\n';
 
     case 'sup':
       // A rendered footnote reference goes back to its source form.

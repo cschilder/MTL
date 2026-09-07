@@ -203,12 +203,16 @@ final class InlineParser
             array_splice($this->out, $index + 1);
             $this->out[] = "<br>\n";
         } else {
-            // A single trailing space is dropped; a soft break becomes a
-            // newline in the output, which HTML renders as a space.
+            // A single trailing space is dropped. The soft break itself is
+            // rendered as a real line break — a deliberate departure from
+            // CommonMark, which would fold it into a space. Nobody writing a
+            // travel report on a phone means "join these lines": here a
+            // newline is a newline, the way Slack, WhatsApp and GitHub
+            // comments treat one.
             if ($trailing === 1) {
                 array_pop($this->out);
             }
-            $this->out[] = "\n";
+            $this->out[] = "<br>\n";
         }
 
         ++$this->position;

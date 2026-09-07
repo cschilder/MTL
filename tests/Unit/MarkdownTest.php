@@ -382,6 +382,20 @@ final class MarkdownTest extends TestCase
         $this->assertContains('<br>', $this->render("regel een  \nregel twee"));
     }
 
+    /**
+     * A deliberate departure from CommonMark: a plain newline is a line
+     * break, not a space. Travel reports are written line by line on a
+     * phone, and "join these lines" is never what the author meant.
+     */
+    public function testAPlainNewlineIsALineBreak(): void
+    {
+        $html = $this->render("regel een\nregel twee");
+
+        $this->assertContains('<br>', $html);
+        // Still one paragraph: only a blank line starts a new one.
+        $this->assertSame(1, substr_count($html, '<p>'));
+    }
+
     public function testHardBreakFromBackslash(): void
     {
         $this->assertContains('<br>', $this->render("regel een\\\nregel twee"));

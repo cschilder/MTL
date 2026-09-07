@@ -76,8 +76,12 @@ const CASES = [
   'Twee noten[^a] en[^b]\n\n[^a]: Eerste.\n\n[^b]: Tweede.',
 
   // Whitespace and escaping.
-  'Regel een  \nRegel twee',
-  'Regel een  \nRegel twee  \nRegel drie',
+  // A plain newline IS the line break in this application's dialect (the
+  // renderer treats every newline as one), so the bare form is what a round
+  // trip must preserve. The old two-trailing-spaces form renders the same
+  // but normalises to this on the first save.
+  'Regel een\nRegel twee',
+  'Regel een\nRegel twee\nRegel drie',
   'Tekst met een < en een & erin',
   'Een \\* letterlijke asterisk',
   'Een \\_ letterlijke underscore',

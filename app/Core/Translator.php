@@ -100,9 +100,14 @@ final class Translator
 
         $merged = array_merge(self::$messages[self::FALLBACK] ?? [], self::$messages[self::$locale] ?? []);
 
+        // A few strings are shared between server-rendered pages and the
+        // modules; without them the browser showed the raw key ("app.saved")
+        // in the editor's status line.
+        $shared = ['app.saved', 'media.uploading', 'media.upload_failed'];
+
         return array_filter(
             $merged,
-            static fn (string $key): bool => str_starts_with($key, 'js.'),
+            static fn (string $key): bool => str_starts_with($key, 'js.') || in_array($key, $shared, true),
             ARRAY_FILTER_USE_KEY
         );
     }
