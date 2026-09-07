@@ -147,6 +147,21 @@ final class TripAdminController extends Controller
     }
 
     /**
+     * The companion links live on the trip's edit page; anyone who lands on
+     * the collaborators URL itself (typed, bookmarked, a back button) is sent
+     * there instead of getting a 404 for a page that never existed.
+     */
+    public function collaborators(Request $request): Response
+    {
+        /** @var Trip $trip */
+        $trip = $this->findOrFail(Trip::class, (int) $request->param('id', '0'), true);
+
+        $this->authorize('trip.update', $trip);
+
+        return Response::redirect($trip->editUrl() . '#reisgenoten', 303);
+    }
+
+    /**
      * Links a registered member to the trip as a travel companion.
      */
     public function addCollaborator(Request $request): Response
@@ -156,8 +171,13 @@ final class TripAdminController extends Controller
 
         $this->authorize('trip.share', $trip);
 
-        /** @var User $member */
-        $member = $this->findOrFail(User::class, (int) $request->input('user_id', 0));
+        // A missing or unknown member is a form mishap, not a missing page:
+        // answer on the trip itself rather than with a bare 404.
+        $member = User::find((int) $request->input('user_id', 0));
+
+        if ($member === null) {
+            return $this->back($trip->editUrl() . '#reisgenoten', __('trip.collaborator_unknown'), 'negative');
+        }
 
         if (!$member->isActive()) {
             return $this->back($trip->editUrl(), __('trip.collaborator_inactive'), 'negative');

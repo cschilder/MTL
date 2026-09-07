@@ -58,7 +58,7 @@ final class SettingsService
         'media.quota_mb'           => ['value' => 0,                         'type' => 'int',    'group' => 'media', 'autoload' => true],
 
         'registration.open'     => ['value' => false,                        'type' => 'bool',   'group' => 'users', 'autoload' => true],
-        'registration.default_role' => ['value' => 'viewer',                 'type' => 'string', 'group' => 'users', 'autoload' => true],
+        'registration.default_role' => ['value' => 'author',                 'type' => 'string', 'group' => 'users', 'autoload' => true],
 
         // The Android wrapper. Filled in after the APK is signed; until then
         // /.well-known/assetlinks.json correctly reports that no app is

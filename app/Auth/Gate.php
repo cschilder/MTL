@@ -70,14 +70,15 @@ final class Gate
 
     /**
      * Permissions a travel companion holds over the trip they are linked to
-     * (and its stops). Editing, in full — but never trip.delete, trip.publish
-     * or trip.share: whose trip it is, who sees it, and who else may join
-     * stay with the owner.
+     * (and its stops). Editing in full, and linking further companions —
+     * "members link each other" is the point of the feature. What never
+     * transfers: trip.delete and trip.publish. Whose trip it is and who sees
+     * it stay with the owner, who can also always unlink anyone.
      *
      * @var list<string>
      */
     private const COLLABORATOR_PERMISSIONS = [
-        'trip.update',
+        'trip.update', 'trip.share',
         'step.create', 'step.update', 'step.delete', 'step.publish',
     ];
 

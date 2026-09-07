@@ -20,9 +20,9 @@ defined('MTL_APP') || exit;
  * Travel companions.
  *
  * The promises pinned here: a linked member edits the trip and its stops as
- * if they were their own — whatever their role — while deleting, publishing
- * and linking others stay with the owner; and an unlinked member gains
- * nothing at all.
+ * if they were their own — whatever their role — and may link further
+ * companions, while deleting and publishing stay with the owner; and an
+ * unlinked member gains nothing at all.
  */
 final class CollaborationTest extends TestCase
 {
@@ -100,10 +100,16 @@ final class CollaborationTest extends TestCase
         $this->assertTrue(Gate::allows($this->friend, 'media.upload'));
         $this->assertTrue(Gate::canViewPrivate($this->friend, $trip));
 
+        // Companions link each other: the linked member may bring in a third.
+        $this->assertTrue(Gate::allows($this->friend, 'trip.share', $trip));
+
+        $third = $this->makeUser('derde@example.com', User::ROLE_VIEWER);
+        CollaborationService::add($trip, $third, $this->friend);
+        $this->assertTrue(Gate::allows($third, 'trip.update', $trip));
+
         // But never the owner's prerogatives.
         $this->assertFalse(Gate::allows($this->friend, 'trip.delete', $trip));
         $this->assertFalse(Gate::allows($this->friend, 'trip.publish', $trip));
-        $this->assertFalse(Gate::allows($this->friend, 'trip.share', $trip));
     }
 
     public function testTheOwnerLinksAndUnlinksTheirOwnTrip(): void

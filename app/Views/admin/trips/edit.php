@@ -247,7 +247,7 @@ $value = static fn (string $field, mixed $default = '') => old($field, $trip?->s
 // the list but not the buttons.
 ?>
 <?php if (!$isNew): ?>
-    <section style="margin-block-start: var(--mtl-space-7);">
+    <section id="reisgenoten" style="margin-block-start: var(--mtl-space-7);">
         <div class="mtl-page-head">
             <h2><?= e(__('trip.collaborators')) ?></h2>
         </div>

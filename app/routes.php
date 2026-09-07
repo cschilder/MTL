@@ -171,6 +171,7 @@ return static function (Router $router): void {
         $admin->post('/trips/{id:\d+}/reorder', [TripAdminController::class, 'reorderSteps'])->name('admin.trips.reorder');
         $admin->post('/trips/{id:\d+}/geocode', [TripAdminController::class, 'geocodeSteps'])->name('admin.trips.geocode');
         $admin->post('/trips/{id:\d+}/publish-steps', [TripAdminController::class, 'publishSteps'])->name('admin.trips.publish_steps');
+        $admin->get('/trips/{id:\d+}/collaborators', [TripAdminController::class, 'collaborators'])->name('admin.trips.collaborators');
         $admin->post('/trips/{id:\d+}/collaborators', [TripAdminController::class, 'addCollaborator'])->name('admin.trips.collaborators.add');
         $admin->post('/trips/{id:\d+}/collaborators/{user:\d+}/delete', [TripAdminController::class, 'removeCollaborator'])->name('admin.trips.collaborators.remove');
 

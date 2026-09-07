@@ -81,7 +81,7 @@ final class RegistrationService
 
     private static function defaultRole(): string
     {
-        $role = SettingsService::string('registration.default_role', 'viewer');
+        $role = SettingsService::string('registration.default_role', 'author');
 
         // Whatever the setting says, a self-registered stranger never starts
         // as an administrator.
