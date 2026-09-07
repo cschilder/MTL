@@ -43,7 +43,10 @@ final class ContentCommand
         $total = 0;
         $changed = 0;
 
-        foreach ([['trips', Trip::class, 500], ['steps', Step::class, 500]] as [$label, $model, $excerptLength]) {
+        // A step's excerpt is derived from its report, so it is re-derived
+        // here. A trip has no such column: its summary is written by the
+        // author and is not the renderer's to touch.
+        foreach ([['trips', Trip::class, false], ['steps', Step::class, true]] as [$label, $model, $hasExcerpt]) {
             $seen = 0;
             $updated = 0;
 
@@ -63,10 +66,13 @@ final class ContentCommand
                 $updated++;
 
                 if (!$dryRun) {
-                    $record->update([
-                        'body_html' => $rendered['html'],
-                        'excerpt'   => Str::excerpt($rendered['text'], $excerptLength),
-                    ]);
+                    $values = ['body_html' => $rendered['html']];
+
+                    if ($hasExcerpt) {
+                        $values['excerpt'] = Str::excerpt($rendered['text'], 500);
+                    }
+
+                    $record->update($values);
                 }
             }
 
