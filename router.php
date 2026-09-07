@@ -44,6 +44,8 @@ if ($path !== '/' && is_file($file) && !str_ends_with($file, '.php')) {
         'avif' => 'image/avif',
         'bin' => 'application/octet-stream',
         'css' => 'text/css',
+        // The StackEdit build's entry page lives under /assets too.
+        'html' => 'text/html; charset=utf-8',
         'ico' => 'image/x-icon',
         'jpeg' => 'image/jpeg',
         'jpg' => 'image/jpeg',
@@ -53,6 +55,7 @@ if ($path !== '/' && is_file($file) && !str_ends_with($file, '.php')) {
         'mjs' => 'text/javascript',
         'png' => 'image/png',
         'svg' => 'image/svg+xml',
+        'ttf' => 'font/ttf',
         'webp' => 'image/webp',
         'woff' => 'font/woff',
         'woff2' => 'font/woff2',

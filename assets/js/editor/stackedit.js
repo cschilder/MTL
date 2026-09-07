@@ -4,16 +4,16 @@
  * https://github.com/benweet/stackedit.js — MIT License,
  * Copyright (c) 2018 Benoit Schweblin.
  *
- * Opens https://stackedit.io in a full-page iframe overlay and reports edits
- * back over postMessage. Vendored rather than fetched from a CDN because the
- * application serves every byte of its own JavaScript — the only third party
- * involved is the StackEdit page inside the iframe, which the author opens
- * knowingly.
+ * Opens a StackEdit build in a full-page iframe overlay and reports edits
+ * back over postMessage. The build it opens is this site's own copy under
+ * assets/stackedit (see tools/stackedit/README.md), so the whole exchange is
+ * same-origin and no third party is involved.
  *
  * Local changes from upstream: formatted to this codebase's style; the
- * deprecated `styleEl.type` assignment dropped; a 'ready' event is emitted
- * when StackEdit reports in, so the caller can detect a blocked iframe.
- * The protocol is untouched.
+ * deprecated `styleEl.type` assignment dropped; a 'ready' event when StackEdit
+ * reports in; a 'pickImage' event when StackEdit's image button asks the host
+ * for a picture; and post(), the host-to-StackEdit direction the original
+ * never needed. The upstream protocol itself is untouched.
  */
 
 const styleContent = `
@@ -29,6 +29,7 @@ const styleContent = `
   bottom: 0;
   left: 0;
   z-index: 9999;
+  overscroll-behavior: contain;
 }
 
 .stackedit-hidden-container {
@@ -146,6 +147,23 @@ export class Stackedit {
     }
   }
 
+  /** Whether the overlay is currently on screen. */
+  isOpen() {
+    return Boolean(this.$containerEl);
+  }
+
+  /**
+   * Local addition: a message in the other direction, host to StackEdit.
+   * Silently ignored while the overlay is closed.
+   */
+  post(type, payload = {}) {
+    if (!this.$iframeEl?.contentWindow) return false;
+
+    this.$iframeEl.contentWindow.postMessage({ type, payload }, this.$origin);
+
+    return true;
+  }
+
   openFile(file = {}, silent = false) {
     // Close before opening a new iframe
     this.close();
@@ -180,6 +198,7 @@ export class Stackedit {
     // Load StackEdit in the iframe
     const iframeEl = this.$containerEl.querySelector('iframe');
     iframeEl.src = urlParser.href;
+    this.$iframeEl = iframeEl;
 
     // Add close button handler
     const closeButton = this.$containerEl.querySelector('a');
@@ -192,8 +211,6 @@ export class Stackedit {
           case 'ready':
             // StackEdit has its own close button
             closeButton.parentNode.removeChild(closeButton);
-            // Local addition: surfaced so the caller can tell a healthy load
-            // from a browser (or extension) that blocked the iframe.
             this.$trigger('ready');
             break;
           case 'fileChange':
@@ -202,6 +219,11 @@ export class Stackedit {
             if (silent) {
               this.close();
             }
+            break;
+          case 'pickImage':
+            // Local addition: StackEdit's image button, answered by the host
+            // with post('insertText', { text }).
+            this.$trigger('pickImage');
             break;
           case 'close':
           default:
@@ -226,6 +248,7 @@ export class Stackedit {
       // Release memory
       this.$messageHandler = null;
       this.$containerEl = null;
+      this.$iframeEl = null;
 
       // Restore body scrollbars
       document.body.className = document.body.className.replace(/\sstackedit-no-overflow\b/, '');

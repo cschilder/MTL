@@ -14,8 +14,8 @@ defined('MTL_APP') || exit;
 /**
  * The Content-Security-Policy's carve-outs stay where they belong.
  *
- * The management screens may frame StackEdit and talk to Nominatim; the
- * public site does neither. These tests pin the boundary, so an edit to the
+ * The management screens may talk to Nominatim; the public site may not,
+ * and nobody frames anything but this site itself. These tests pin the boundary, so an edit to the
  * policy cannot quietly widen what a public page is allowed to load.
  */
 final class SecurityHeadersTest extends TestCase
@@ -40,12 +40,14 @@ final class SecurityHeadersTest extends TestCase
         return (string) ($response->headers()['Content-Security-Policy'] ?? '');
     }
 
-    public function testManagementPagesMayFrameStackeditAndReachTheGeocoder(): void
+    public function testManagementPagesMayReachTheGeocoderAndFrameOnlyThemselves(): void
     {
         $policy = $this->policy($this->respondThrough('/admin/trips'));
 
-        $this->assertTrue(str_contains($policy, "frame-src 'self' https://stackedit.io"));
         $this->assertTrue(str_contains($policy, "connect-src 'self' https://nominatim.openstreetmap.org"));
+        // The report editor is this site's own StackEdit build: same origin.
+        $this->assertTrue(str_contains($policy, "frame-src 'self';"));
+        $this->assertFalse(str_contains($policy, 'stackedit.io'));
     }
 
     public function testPublicPagesStaySelfContained(): void

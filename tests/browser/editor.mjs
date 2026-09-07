@@ -1,12 +1,14 @@
 /**
- * The editor as a person actually uses it: typing, formatting, the markdown
- * shorthands, switching to the source view, saving, and coming back.
+ * The editor as a person actually uses it: the form shows the report, one
+ * button opens StackEdit full-screen, what is typed there lands in the form,
+ * a photo goes in at the caret, closing brings the preview up to date, and
+ * saving keeps all of it.
  *
- * The round-trip test covers what the serialiser understands. This covers what
- * happens between a keystroke and the markdown field — which is where a command
- * bound twice turned italic on and straight back off, and where typing "## " on
- * a fresh line reformatted the paragraph *above* it and then swallowed the words
- * that followed.
+ * StackEdit here is the site's own build (assets/stackedit), so the real
+ * thing runs inside the iframe and the real postMessage protocol is what is
+ * tested — not a stand-in. What once went wrong, and is pinned here: a
+ * heading added in StackEdit vanished on Save, and a photo landed above a
+ * heading instead of at the caret.
  */
 
 import { launch, signIn, BASE, watchForErrors, results } from './helpers.mjs';
@@ -18,12 +20,11 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 
-// The StackEdit scenario opens the real stackedit.io iframe; on a machine
-// without a route to it the load fails, which is not what this suite tests.
-const errors = watchForErrors(page, { ignore: ['stackedit.io'] });
+// StackEdit's stylesheet lists every font in woff2 and woff; once the woff2
+// arrives the browser abandons the woff request, which Playwright reports as
+// a failed request. Nothing failed.
+const errors = watchForErrors(page, { ignore: ['/assets/stackedit/static/fonts/'] });
 
-// A confirm() that is auto-dismissed turns a click into a no-op, which is
-// indistinguishable from a handler that does nothing.
 page.on('dialog', async (dialog) => {
   console.log(`   dialog: ${dialog.type()} ${JSON.stringify(dialog.message())}`);
   await dialog.accept();
@@ -31,12 +32,11 @@ page.on('dialog', async (dialog) => {
 
 const { check, summarise } = results();
 
-await page.goto(`${BASE}/admin/steps/1`, { waitUntil: 'load' });
-await page.waitForTimeout(1000);
-
-const surface = page.locator('[data-editor-surface]');
 const field = page.locator('[data-editor-field]');
 const markdown = () => field.inputValue();
+
+await page.goto(`${BASE}/admin/steps/1`, { waitUntil: 'load' });
+await page.waitForTimeout(800);
 
 check(
   'the editor mounts',
@@ -44,217 +44,140 @@ check(
 );
 
 check(
-  'the toolbar is populated',
-  (await page.locator('[data-command]').count()) > 8,
-  `${await page.locator('[data-command]').count()} commands`,
+  'the form shows the rendered report and one button, not a textarea',
+  (await page.locator('[data-editor-preview]').isVisible())
+    && (await page.locator('[data-editor-open]').isVisible())
+    && !(await field.isVisible()),
 );
 
-/** Resets the surface so one case cannot contaminate the next. */
-async function reset(html = '<p>Start.</p>') {
-  await page.evaluate((initial) => {
-    const editor = document.querySelector('[data-editor]');
-
-    editor.querySelector('[data-editor-surface]').innerHTML = initial;
-    editor.mtlEditor.syncToField();
-  }, html);
-
-  await surface.click();
-  await page.keyboard.press('Control+End');
-}
-
-const html = () => page.evaluate(() => document.querySelector('[data-editor-surface]').innerHTML);
-
-// --- formatting --------------------------------------------------------------
-
-for (const [command, pattern, label] of [
-  ['bold', /\*\*Start\.\*\*/, '**'],
-  ['italic', /(?<!\*)\*Start\.\*(?!\*)/, '*'],
-  ['strikeThrough', /~~Start\.~~/, '~~'],
-]) {
-  await reset();
-  for (let i = 0; i < 6; i++) await page.keyboard.press('Shift+ArrowLeft');
-  await page.click(`[data-command="${command}"]`);
-  await page.waitForTimeout(250);
-
-  // Applied exactly once. A toolbar bound twice cancels a toggle out, which is
-  // why this asserts the marker rather than "something changed".
-  check(`toolbar ${command} emits ${label} once`, pattern.test(await markdown()), await markdown());
-}
-
-await reset();
-for (let i = 0; i < 6; i++) await page.keyboard.press('Shift+ArrowLeft');
-await page.keyboard.press('Control+b');
-await page.waitForTimeout(250);
-check('Ctrl+B emits **', /\*\*Start\.\*\*/.test(await markdown()), await markdown());
-
-// --- markdown shorthands -----------------------------------------------------
-
-await reset();
-await page.keyboard.press('Enter');
-await page.keyboard.type('## Een kop');
-await page.waitForTimeout(250);
-check(
-  'the heading shorthand formats the new line, not the one above it',
-  /^Start\.\n\n## Een kop$/.test((await markdown()).trim()),
-  JSON.stringify(await markdown()),
-);
-
-await reset();
-await page.keyboard.press('Enter');
-await page.keyboard.type('- eerste');
-await page.keyboard.press('Enter');
-await page.keyboard.type('tweede');
-await page.waitForTimeout(250);
-check(
-  'the list shorthand starts a list and Enter continues it',
-  /- eerste\n- tweede/.test(await markdown()),
-  JSON.stringify(await markdown()),
-);
-
-await reset();
-await page.keyboard.press('Enter');
-await page.keyboard.type('> een citaat');
-await page.waitForTimeout(250);
-check('the quote shorthand', /^> een citaat$/m.test(await markdown()), JSON.stringify(await markdown()));
-
-check(
-  'no list ends up nested inside a paragraph',
-  !/<p>\s*<[uo]l/.test(await html()),
-  await html(),
-);
-
-// --- modes -------------------------------------------------------------------
-
-await page.locator('[data-editor-mode-button="source"]').click();
-await page.waitForTimeout(300);
-check(
-  'source mode swaps the textarea in',
-  await page.evaluate(() => {
-    const editor = document.querySelector('[data-editor]');
-
-    return (
-      editor.mtlEditor?.mode === 'source' &&
-      editor.querySelector('[data-editor-source]')?.hidden === false &&
-      editor.querySelector('[data-editor-surface]')?.hidden === true
-    );
-  }),
-);
-
-await page.locator('[data-editor-mode-button="rich"]').click();
-await page.waitForTimeout(500);
-check(
-  'and back to the rich surface',
-  (await page.evaluate(() => document.querySelector('[data-editor]').mtlEditor?.mode)) === 'rich',
-);
-
-// --- layout ------------------------------------------------------------------
-
-check(
-  'the sticky toolbar does not cover the first line',
-  await page.evaluate(() => {
-    const toolbar = document.querySelector('.mtl-editor__toolbar').getBoundingClientRect();
-    const first = document.querySelector('[data-editor-surface]').firstElementChild;
-
-    if (!first) return true;
-
-    return first.getBoundingClientRect().top >= toolbar.bottom - 1;
-  }),
-);
-
-// --- saving ------------------------------------------------------------------
-
-await reset('<p>Voor het opslaan.</p>');
-await page.keyboard.press('Control+End');
-await page.keyboard.press('Enter');
-await page.keyboard.type('## Bewaard');
-await page.waitForTimeout(300);
-
+// A known starting point.
+await page.evaluate(() => {
+  const editor = document.querySelector('[data-editor]').mtlEditor;
+  editor.field.value = 'Eerste alinea.\n\nTweede alinea.';
+});
 const before = await markdown();
 
-// The save button, not "the first submit on the page": this page also carries a
-// delete form and a detach form per attachment.
-await Promise.all([
-  page.waitForNavigation({ waitUntil: 'load' }).catch(() => {}),
-  page.locator('button[type=submit].p-button--positive').click(),
-]);
-await page.waitForTimeout(600);
-
-await page.goto(`${BASE}/admin/steps/1`, { waitUntil: 'load' });
-await page.waitForTimeout(800);
-
-const after = await page.locator('[data-editor-field]').inputValue();
-
-check(
-  'the report survives a save and a reload',
-  after.trim() === before.trim(),
-  `${before.length} chars -> ${after.length}`,
-);
-
-check(
-  'no permalink anchors leak into the source',
-  !/\]\(#/.test(after),
-  JSON.stringify((after.match(/\[[^\]]*\]\(#[^)]*\)/g) ?? []).slice(0, 3)),
-);
-
 // ---------------------------------------------------------------------------
-// StackEdit: what comes back over postMessage must survive everything that
-// follows — a mode switch, the preview, a save. The iframe cannot load here
-// (no route to stackedit.io), so the protocol is driven from this side: the
-// same 'fileChange' payload StackEdit posts, handed to the same listener.
-// A heading added in StackEdit vanished on Save once, because the hidden
-// rich surface was serialised over it.
+// Open StackEdit
 // ---------------------------------------------------------------------------
 
-await page.goto(`${BASE}/admin/steps/1`, { waitUntil: 'load' });
-await page.waitForTimeout(800);
+await page.locator('[data-editor-open]').click();
 
-await page.locator('[data-editor-mode-button="stackedit"]').click();
-await page.waitForTimeout(300);
+const frame = page.frameLocator('.stackedit-iframe');
+const stackeditEditor = frame.locator('.editor__inner');
+
+await stackeditEditor.waitFor({ state: 'visible', timeout: 20000 });
+await page.waitForTimeout(1200);
 
 check(
-  'StackEdit mode opens the overlay and keeps the textarea underneath',
+  'StackEdit opens full-screen with the report loaded',
   (await page.locator('.stackedit-container').count()) === 1
-    && !(await page.locator('[data-editor-source]').evaluate((el) => el.hidden)),
+    && (await stackeditEditor.textContent()).includes('Tweede alinea.'),
 );
-
-const fromStackedit = `${after.trim()}\n\n## Kop uit StackEdit\n\nEen regel eronder.`;
-
-await page.evaluate((text) => {
-  const editor = document.querySelector('[data-editor]').mtlEditor;
-
-  editor.stackedit.$trigger('fileChange', { content: { text } });
-}, fromStackedit);
-await page.waitForTimeout(100);
-
-// StackEdit's own ✓ posts 'close'; the library's close() is what handles it.
-await page.evaluate(() => document.querySelector('[data-editor]').mtlEditor.stackedit.close());
-await page.waitForTimeout(100);
 
 check(
-  'a StackEdit edit lands in the field',
-  (await markdown()).includes('## Kop uit StackEdit'),
+  'StackEdit reported in (its own ✓ replaces the fallback close button)',
+  (await page.locator('.stackedit-close-button').count()) === 0
+    && (await frame.locator('button[aria-label^="Close StackEdit"]').count()) === 1,
 );
 
-await page.locator('[data-editor-mode-button="preview"]').click();
-await page.waitForTimeout(600);
+// The side bar: the full menu, minus what needs a cloud account.
+await frame.locator('button[aria-label^="Toggle side bar"]').click();
+await page.waitForTimeout(500);
+const menuText = await frame.locator('.side-bar').textContent();
 
 check(
-  'the edit survives switching to the preview',
-  (await markdown()).includes('## Kop uit StackEdit'),
+  'the full menu is there (settings, table of contents, import/export)',
+  /Settings/.test(menuText) && /Table of contents/.test(menuText) && /Import\/export/.test(menuText),
 );
 
-await page.locator('[data-editor-mode-button="rich"]').click();
+check(
+  'cloud-account entries are hidden',
+  !/Synchronize/.test(menuText) && !/Publish/.test(menuText) && !/Workspaces/.test(menuText),
+);
+
+await frame.locator('button[aria-label^="Toggle side bar"]').click();
+await page.waitForTimeout(300);
+
+// ---------------------------------------------------------------------------
+// Type in StackEdit; it must arrive in the form field as-is
+// ---------------------------------------------------------------------------
+
+await stackeditEditor.click();
+await page.keyboard.press('Control+End');
+await page.keyboard.press('Enter');
+await page.keyboard.press('Enter');
+await page.keyboard.type('## Kop uit StackEdit');
+await page.keyboard.press('Enter');
+await page.keyboard.type('Regel eronder.');
+await page.waitForTimeout(1000);
+
+check(
+  'what is typed in StackEdit lands in the form field',
+  (await markdown()).includes('## Kop uit StackEdit\nRegel eronder.'),
+  JSON.stringify((await markdown()).slice(-60)),
+);
+
+// ---------------------------------------------------------------------------
+// A photo goes in at the caret, inside StackEdit
+// ---------------------------------------------------------------------------
+
+// Put the caret in the middle of the report: end of the heading line.
+await page.keyboard.press('Control+End');
+await page.keyboard.press('ArrowUp');
+await page.keyboard.press('End');
+
+await frame.locator('button[aria-label^="Image"]').click();
+await page.waitForTimeout(500);
+
+check(
+  "StackEdit's image button opens the site's photo library",
+  await page.locator('[data-media-picker]').evaluate((dialog) => dialog.open),
+);
+
+// The library is empty on a fresh test database; answer the way the picker
+// would, through the same insertMedia() path. Any real image will do for the
+// URL — the site's own icon exists on every installation.
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
+await page.evaluate(() => {
+  document.querySelector('[data-editor]').mtlEditor.insertMedia({
+    uuid: 'icon',
+    url: '/assets/icons/icon-192.png',
+    alt: 'Uitzicht',
+  });
+});
+await page.waitForTimeout(1000);
+
+const withPhoto = await markdown();
+
+check(
+  'the photo lands at the caret, after the heading and before the line below',
+  /## Kop uit StackEdit\n!\[Uitzicht\]\(\/assets\/icons\/icon-192\.png\)\nRegel eronder\./.test(withPhoto),
+  JSON.stringify(withPhoto.slice(-120)),
+);
+
+// ---------------------------------------------------------------------------
+// Close with StackEdit's ✓; the preview follows; Save keeps everything
+// ---------------------------------------------------------------------------
+
+await frame.locator('button[aria-label^="Close StackEdit"]').click();
 await page.waitForTimeout(800);
 
 check(
-  'the edit survives switching to the rich surface',
-  (await markdown()).includes('## Kop uit StackEdit')
-    && (await surface.innerHTML()).includes('Kop uit StackEdit'),
+  'the ✓ closes the sheet',
+  (await page.locator('.stackedit-container').count()) === 0,
 );
 
-await page.locator('[data-editor-mode-button="stackedit"]').click();
-await page.waitForTimeout(300);
-await page.evaluate(() => document.querySelector('[data-editor]').mtlEditor.stackedit.close());
+check(
+  'the preview shows the new heading',
+  (await page.locator('[data-editor-preview]').textContent()).includes('Kop uit StackEdit'),
+);
+
+check(
+  'the field still holds the original paragraphs',
+  (await markdown()).startsWith(before),
+);
 
 await Promise.all([
   page.waitForNavigation({ waitUntil: 'load' }).catch(() => {}),
@@ -265,15 +188,24 @@ await page.waitForTimeout(600);
 await page.goto(`${BASE}/admin/steps/1`, { waitUntil: 'load' });
 await page.waitForTimeout(800);
 
+const after = await markdown();
+
 check(
-  'the edit survives a save from StackEdit mode',
-  (await page.locator('[data-editor-field]').inputValue()).includes('## Kop uit StackEdit'),
+  'the report survives a save and a reload, byte for byte',
+  after === withPhoto,
+  `${withPhoto.length} chars -> ${after.length}`,
 );
 
-// Leave the account on the plain editor again, so the other suites are not
-// greeted by an overlay.
-await page.locator('[data-editor-mode-button="rich"]').click();
-await page.waitForTimeout(400);
+// Tapping the rendered report opens the editor too.
+await page.locator('[data-editor-preview]').click();
+await page.waitForTimeout(500);
+
+check(
+  'tapping the report opens StackEdit',
+  (await page.locator('.stackedit-container').count()) === 1,
+);
+
+await page.evaluate(() => document.querySelector('[data-editor]').mtlEditor.stackedit.close());
 
 console.log(`\nconsole errors: ${errors.length > 0 ? errors.slice(0, 5).join('; ') : 'none'}`);
 

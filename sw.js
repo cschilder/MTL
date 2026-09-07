@@ -24,7 +24,7 @@
  * shell.
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 
 const SHELL_CACHE = `mtl-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `mtl-pages-${CACHE_VERSION}`;

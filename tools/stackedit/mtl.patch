@@ -1,0 +1,569 @@
+diff --git a/build/webpack.base.conf.js b/build/webpack.base.conf.js
+index f0f27e4..1886d94 100644
+--- a/build/webpack.base.conf.js
++++ b/build/webpack.base.conf.js
+@@ -33,15 +33,8 @@ module.exports = {
+   },
+   module: {
+     rules: [
+-      {
+-        test: /\.(js|vue)$/,
+-        loader: 'eslint-loader',
+-        enforce: 'pre',
+-        include: [resolve('src'), resolve('test')],
+-        options: {
+-          formatter: require('eslint-friendly-formatter')
+-        }
+-      },
++      // eslint-loader dropped: linting is not part of producing the bundle, and
++      // the pinned eslint crashes on template literals with a newer parser.
+       {
+         test: /\.vue$/,
+         loader: 'vue-loader',
+diff --git a/build/webpack.prod.conf.js b/build/webpack.prod.conf.js
+index 94da9d8..a2abcb9 100644
+--- a/build/webpack.prod.conf.js
++++ b/build/webpack.prod.conf.js
+@@ -8,7 +8,6 @@ var CopyWebpackPlugin = require('copy-webpack-plugin')
+ var HtmlWebpackPlugin = require('html-webpack-plugin')
+ var ExtractTextPlugin = require('extract-text-webpack-plugin')
+ var OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
+-var OfflinePlugin = require('offline-plugin');
+ var WebpackPwaManifest = require('webpack-pwa-manifest')
+ var FaviconsWebpackPlugin = require('favicons-webpack-plugin')
+ 
+@@ -117,14 +116,6 @@ var webpackConfig = merge(baseWebpackConfig, {
+         sizes: [96, 128, 192, 256, 384, 512]
+       }]
+     }),
+-    new OfflinePlugin({
+-      ServiceWorker: {
+-        events: true
+-      },
+-      AppCache: true,
+-      excludes: ['**/.*', '**/*.map', '**/index.html', '**/static/oauth2/callback.html', '**/icons-*/*.png', '**/static/fonts/KaTeX_*'],
+-      externals: ['/', '/app', '/oauth2/callback']
+-    }),
+   ]
+ })
+ 
+diff --git a/config/index.js b/config/index.js
+index 9fecd84..186808f 100644
+--- a/config/index.js
++++ b/config/index.js
+@@ -7,8 +7,8 @@ module.exports = {
+     index: path.resolve(__dirname, '../dist/index.html'),
+     assetsRoot: path.resolve(__dirname, '../dist'),
+     assetsSubDirectory: 'static',
+-    assetsPublicPath: '/',
+-    productionSourceMap: true,
++    assetsPublicPath: '/assets/stackedit/',
++    productionSourceMap: false,
+     // Gzip off by default as many popular static hosts such as
+     // Surge or Netlify already gzip all static assets for you.
+     // Before setting to `true`, make sure to:
+diff --git a/index.html b/index.html
+index 2fbca80..15feda3 100644
+--- a/index.html
++++ b/index.html
+@@ -3,8 +3,6 @@
+   <head>
+     <meta charset="utf-8">
+     <title>StackEdit</title>
+-    <link rel="canonical" href="https://stackedit.io/app">
+-    <meta name="description" content="Free, open-source, full-featured Markdown editor.">
+     <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+     <meta name="mobile-web-app-capable" content="yes">
+     <meta name="apple-mobile-web-app-capable" content="yes">
+diff --git a/package.json b/package.json
+index 6ab374c..c3535c0 100644
+--- a/package.json
++++ b/package.json
+@@ -25,110 +25,109 @@
+     "chart": "mkdir -p dist && rm -rf dist/stackedit && cp -r chart dist/stackedit && sed -i.bak -e s/STACKEDIT_VERSION/$npm_package_version/g dist/stackedit/*.yaml && rm dist/stackedit/*.yaml.bak"
+   },
+   "dependencies": {
+-    "@vue/test-utils": "^1.0.0-beta.16",
+-    "abcjs": "^5.2.0",
+-    "aws-sdk": "^2.1380.0",
+-    "babel-runtime": "^6.26.0",
+-    "bezier-easing": "^1.1.0",
+-    "body-parser": "^1.18.2",
+-    "clipboard": "^1.7.1",
+-    "compression": "^1.7.0",
+-    "diff-match-patch": "^1.0.0",
+-    "file-saver": "^1.3.8",
+-    "google-id-token-verifier": "^0.2.3",
+-    "handlebars": "^4.0.10",
+-    "indexeddbshim": "^3.6.2",
+-    "js-yaml": "^3.11.0",
+-    "katex": "^0.13.0",
+-    "markdown-it": "^8.4.1",
+-    "markdown-it-abbr": "^1.0.4",
+-    "markdown-it-deflist": "^2.0.2",
+-    "markdown-it-emoji": "^1.3.0",
+-    "markdown-it-footnote": "^3.0.1",
+-    "markdown-it-imsize": "^2.0.1",
+-    "markdown-it-mark": "^2.0.0",
++    "@vue/test-utils": "1.0.0-beta.24",
++    "aws-sdk": "2.1380.0",
++    "babel-runtime": "6.26.0",
++    "bezier-easing": "1.1.1",
++    "body-parser": "1.18.2",
++    "clipboard": "1.7.1",
++    "compression": "1.7.1",
++    "diff-match-patch": "1.0.0",
++    "file-saver": "1.3.8",
++    "google-id-token-verifier": "0.2.3",
++    "handlebars": "4.0.11",
++    "indexeddbshim": "3.8.0",
++    "js-yaml": "3.12.0",
++    "katex": "0.13.0",
++    "markdown-it": "8.4.2",
++    "markdown-it-abbr": "1.0.4",
++    "markdown-it-deflist": "2.0.3",
++    "markdown-it-emoji": "1.4.0",
++    "markdown-it-footnote": "3.0.1",
++    "markdown-it-imsize": "2.0.1",
++    "markdown-it-mark": "2.0.0",
+     "markdown-it-pandoc-renderer": "1.2.0",
+-    "markdown-it-sub": "^1.0.0",
+-    "markdown-it-sup": "^1.0.0",
+-    "mermaid": "^8.9.2",
+-    "mousetrap": "^1.6.1",
+-    "normalize-scss": "^7.0.1",
+-    "prismjs": "^1.6.0",
+-    "request": "^2.85.0",
+-    "serve-static": "^1.13.2",
+-    "tmp": "^0.0.33",
+-    "turndown": "^4.0.2",
+-    "vue": "^2.5.16",
+-    "vuex": "^3.0.1"
++    "markdown-it-sub": "1.0.0",
++    "markdown-it-sup": "1.0.0",
++    "mermaid": "8.9.2",
++    "mousetrap": "1.6.1",
++    "normalize-scss": "7.0.1",
++    "prismjs": "1.9.0",
++    "request": "2.88.0",
++    "serve-static": "1.13.2",
++    "tmp": "0.0.33",
++    "turndown": "4.0.2",
++    "vue": "2.5.17",
++    "vuex": "3.0.1"
+   },
+   "devDependencies": {
+-    "autoprefixer": "^6.7.2",
+-    "babel-core": "^6.26.3",
+-    "babel-eslint": "^8.2.3",
+-    "babel-jest": "^21.0.2",
+-    "babel-loader": "^7.1.4",
+-    "babel-plugin-dynamic-import-node": "^1.2.0",
+-    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
+-    "babel-plugin-transform-runtime": "^6.23.0",
+-    "babel-polyfill": "^6.23.0",
+-    "babel-preset-env": "^1.7.0",
+-    "babel-preset-stage-2": "^6.22.0",
+-    "babel-register": "^6.22.0",
+-    "chalk": "^1.1.3",
+-    "connect-history-api-fallback": "^1.3.0",
+-    "copy-webpack-plugin": "^4.5.1",
+-    "css-loader": "^0.28.11",
+-    "eslint": "^4.19.1",
+-    "eslint-config-airbnb-base": "^12.1.0",
+-    "eslint-friendly-formatter": "^4.0.1",
+-    "eslint-import-resolver-webpack": "^0.9.0",
+-    "eslint-loader": "^2.0.0",
+-    "eslint-plugin-html": "^4.0.3",
+-    "eslint-plugin-import": "^2.11.0",
+-    "eventsource-polyfill": "^0.9.6",
+-    "express": "^4.16.3",
+-    "extract-text-webpack-plugin": "^2.0.0",
+-    "favicons-webpack-plugin": "^0.0.9",
+-    "file-loader": "^1.1.11",
+-    "friendly-errors-webpack-plugin": "^1.7.0",
+-    "gulp": "^4.0.2",
+-    "gulp-concat": "^2.6.1",
+-    "html-webpack-plugin": "^3.2.0",
+-    "http-proxy-middleware": "^0.18.0",
+-    "identity-obj-proxy": "^3.0.0",
+-    "ignore-loader": "^0.1.2",
+-    "jest": "^23.0.0",
+-    "jest-raw-loader": "^1.0.1",
+-    "jest-serializer-vue": "^0.3.0",
+-    "node-sass": "^4.0.0",
+-    "npm-bump": "^0.0.23",
+-    "offline-plugin": "^5.0.3",
+-    "opn": "^4.0.2",
+-    "optimize-css-assets-webpack-plugin": "^1.3.2",
+-    "ora": "^1.2.0",
+-    "raw-loader": "^0.5.1",
+-    "replace-in-file": "^4.1.0",
+-    "rimraf": "^2.6.0",
+-    "sass-loader": "^7.0.1",
+-    "semver": "^5.5.0",
+-    "shelljs": "^0.8.1",
+-    "string-replace-loader": "^2.1.1",
+-    "stylelint": "^9.2.0",
+-    "stylelint-config-standard": "^16.0.0",
+-    "stylelint-processor-html": "^1.0.0",
+-    "stylelint-webpack-plugin": "^0.10.4",
+-    "url-loader": "^1.0.1",
+-    "vue-jest": "^1.0.2",
+-    "vue-loader": "^15.0.9",
+-    "vue-style-loader": "^4.1.0",
+-    "vue-template-compiler": "^2.5.16",
+-    "webpack": "^2.6.1",
+-    "webpack-bundle-analyzer": "^3.3.2",
+-    "webpack-dev-middleware": "^1.10.0",
+-    "webpack-hot-middleware": "^2.18.0",
+-    "webpack-merge": "^4.1.2",
+-    "webpack-pwa-manifest": "^3.7.1",
+-    "worker-loader": "^1.1.1"
++    "autoprefixer": "6.7.7",
++    "babel-core": "6.26.3",
++    "babel-eslint": "8.2.6",
++    "babel-jest": "21.2.0",
++    "babel-loader": "7.1.5",
++    "babel-plugin-dynamic-import-node": "1.2.0",
++    "babel-plugin-transform-es2015-modules-commonjs": "6.26.2",
++    "babel-plugin-transform-runtime": "6.23.0",
++    "babel-polyfill": "6.26.0",
++    "babel-preset-env": "1.7.0",
++    "babel-preset-stage-2": "6.24.1",
++    "babel-register": "6.26.0",
++    "chalk": "1.1.3",
++    "connect-history-api-fallback": "1.5.0",
++    "copy-webpack-plugin": "4.5.1",
++    "css-loader": "0.28.11",
++    "eslint": "4.19.1",
++    "eslint-config-airbnb-base": "12.1.0",
++    "eslint-friendly-formatter": "4.0.1",
++    "eslint-import-resolver-webpack": "0.9.0",
++    "eslint-loader": "2.1.0",
++    "eslint-plugin-html": "4.0.5",
++    "eslint-plugin-import": "2.14.0",
++    "eventsource-polyfill": "0.9.6",
++    "express": "4.16.3",
++    "extract-text-webpack-plugin": "2.1.2",
++    "favicons-webpack-plugin": "0.0.9",
++    "file-loader": "1.1.11",
++    "friendly-errors-webpack-plugin": "1.7.0",
++    "gulp": "4.0.2",
++    "gulp-concat": "2.6.1",
++    "html-webpack-plugin": "3.2.0",
++    "http-proxy-middleware": "0.18.0",
++    "identity-obj-proxy": "3.0.0",
++    "ignore-loader": "0.1.2",
++    "jest": "23.5.0",
++    "jest-raw-loader": "1.0.1",
++    "jest-serializer-vue": "0.3.0",
++    "node-sass": "4.14.1",
++    "npm-bump": "0.0.23",
++    "offline-plugin": "5.0.5",
++    "opn": "4.0.2",
++    "optimize-css-assets-webpack-plugin": "1.3.2",
++    "ora": "1.3.0",
++    "raw-loader": "0.5.1",
++    "replace-in-file": "4.1.0",
++    "rimraf": "2.6.2",
++    "sass-loader": "7.3.1",
++    "semver": "5.5.1",
++    "shelljs": "0.8.2",
++    "string-replace-loader": "2.1.1",
++    "stylelint": "9.5.0",
++    "stylelint-config-standard": "16.0.0",
++    "stylelint-processor-html": "1.0.0",
++    "stylelint-webpack-plugin": "0.10.5",
++    "url-loader": "1.1.1",
++    "vue-jest": "1.4.0",
++    "vue-loader": "15.4.0",
++    "vue-style-loader": "4.1.2",
++    "vue-template-compiler": "2.5.17",
++    "webpack": "2.7.0",
++    "webpack-bundle-analyzer": "3.3.2",
++    "webpack-dev-middleware": "1.12.2",
++    "webpack-hot-middleware": "2.21.0",
++    "webpack-merge": "4.1.4",
++    "webpack-pwa-manifest": "3.7.1",
++    "worker-loader": "1.1.1"
+   },
+   "engines": {
+     "node": ">= 8.0.0",
+diff --git a/src/components/NavigationBar.vue b/src/components/NavigationBar.vue
+index 44549fc..1081787 100644
+--- a/src/components/NavigationBar.vue
++++ b/src/components/NavigationBar.vue
+@@ -7,8 +7,7 @@
+     </div>
+     <!-- Side bar -->
+     <div class="navigation-bar__inner navigation-bar__inner--right navigation-bar__inner--button">
+-      <a class="navigation-bar__button navigation-bar__button--stackedit button" v-if="light" href="app" target="_blank" v-title="'Open StackEdit'"><icon-provider provider-id="stackedit"></icon-provider></a>
+-      <button class="navigation-bar__button navigation-bar__button--stackedit button" v-else tour-step-anchor="menu" @click="toggleSideBar()" v-title="'Toggle side bar'"><icon-provider provider-id="stackedit"></icon-provider></button>
++      <button class="navigation-bar__button navigation-bar__button--stackedit button" tour-step-anchor="menu" @click="toggleSideBar()" v-title="'Toggle side bar'"><icon-provider provider-id="stackedit"></icon-provider></button>
+     </div>
+     <div class="navigation-bar__inner navigation-bar__inner--right navigation-bar__inner--title flex flex--row">
+       <!-- Spinner -->
+diff --git a/src/components/SideBar.vue b/src/components/SideBar.vue
+index bf4019f..21fa4ea 100644
+--- a/src/components/SideBar.vue
++++ b/src/components/SideBar.vue
+@@ -73,9 +73,6 @@ export default {
+   }),
+   computed: {
+     panel() {
+-      if (store.state.light) {
+-        return null; // No menu in light mode
+-      }
+       const result = store.getters['data/layoutSettings'].sideBarPanel;
+       return panelNames[result] ? result : 'menu';
+     },
+diff --git a/src/components/menus/MainMenu.vue b/src/components/menus/MainMenu.vue
+index 85f2260..69d6829 100644
+--- a/src/components/menus/MainMenu.vue
++++ b/src/components/menus/MainMenu.vue
+@@ -1,6 +1,6 @@
+ <template>
+   <div class="side-bar__panel side-bar__panel--menu">
+-    <div class="side-bar__info">
++    <div class="side-bar__info" v-if="!light">
+       <div class="menu-entry menu-entry--info flex flex--row flex--align-center" v-if="loginToken">
+         <div class="menu-entry__icon menu-entry__icon--image">
+           <user-image :user-id="userId"></user-image>
+@@ -34,23 +34,23 @@
+         <span><b>{{currentWorkspace.name}}</b> not synced.</span>
+       </div>
+     </div>
+-    <menu-entry v-if="!loginToken" @click.native="signin">
++    <menu-entry v-if="!light && !loginToken" @click.native="signin">
+       <icon-login slot="icon"></icon-login>
+       <div>Sign in with Google</div>
+       <span>Sync your main workspace and unlock functionalities.</span>
+     </menu-entry>
+-    <menu-entry @click.native="setPanel('workspaces')">
++    <menu-entry v-if="!light" @click.native="setPanel('workspaces')">
+       <icon-database slot="icon"></icon-database>
+       <div><div class="menu-entry__label menu-entry__label--count" v-if="workspaceCount">{{workspaceCount}}</div> Workspaces</div>
+       <span>Switch to another workspace.</span>
+     </menu-entry>
+     <hr>
+-    <menu-entry @click.native="setPanel('sync')">
++    <menu-entry v-if="!light" @click.native="setPanel('sync')">
+       <icon-sync slot="icon"></icon-sync>
+       <div><div class="menu-entry__label menu-entry__label--count" v-if="syncLocationCount">{{syncLocationCount}}</div> Synchronize</div>
+       <span>Sync your files in the Cloud.</span>
+     </menu-entry>
+-    <menu-entry @click.native="setPanel('publish')">
++    <menu-entry v-if="!light" @click.native="setPanel('publish')">
+       <icon-upload slot="icon"></icon-upload>
+       <div><div class="menu-entry__label menu-entry__label--count" v-if="publishLocationCount">{{publishLocationCount}}</div>Publish</div>
+       <span>Export your files to the web.</span>
+@@ -84,12 +84,12 @@
+       Print
+     </menu-entry>
+     <hr>
+-    <menu-entry @click.native="badges">
++    <menu-entry v-if="!light" @click.native="badges">
+       <icon-seal slot="icon"></icon-seal>
+       <div><div class="menu-entry__label menu-entry__label--count">{{badgeCount}}/{{featureCount}}</div> Badges</div>
+       <span>List application features and earned badges.</span>
+     </menu-entry>
+-    <menu-entry @click.native="accounts">
++    <menu-entry v-if="!light" @click.native="accounts">
+       <icon-key slot="icon"></icon-key>
+       <div><div class="menu-entry__label menu-entry__label--count">{{accountCount}}</div> Accounts</div>
+       <span>Manage access to your external accounts.</span>
+@@ -105,11 +105,11 @@
+       <span>Tweak application and keyboard shortcuts.</span>
+     </menu-entry>
+     <hr>
+-    <menu-entry @click.native="setPanel('workspaceBackups')">
++    <menu-entry v-if="!light" @click.native="setPanel('workspaceBackups')">
+       <icon-content-save slot="icon"></icon-content-save>
+       Workspace backups
+     </menu-entry>
+-    <menu-entry @click.native="reset">
++    <menu-entry v-if="!light" @click.native="reset">
+       <icon-logout slot="icon"></icon-logout>
+       Reset application
+     </menu-entry>
+@@ -121,7 +121,7 @@
+ </template>
+ 
+ <script>
+-import { mapGetters, mapActions } from 'vuex';
++import { mapState, mapGetters, mapActions } from 'vuex';
+ import MenuEntry from './common/MenuEntry';
+ import providerRegistry from '../../services/providers/common/providerRegistry';
+ import UserImage from '../UserImage';
+@@ -136,6 +136,9 @@ export default {
+     UserImage,
+   },
+   computed: {
++    ...mapState([
++      'light',
++    ]),
+     ...mapGetters('workspace', [
+       'currentWorkspace',
+       'syncToken',
+diff --git a/src/extensions/index.js b/src/extensions/index.js
+index 347b396..8cf9553 100644
+--- a/src/extensions/index.js
++++ b/src/extensions/index.js
+@@ -1,5 +1,4 @@
+ import './emojiExtension';
+-import './abcExtension';
+ import './katexExtension';
+ import './markdownExtension';
+ import './mermaidExtension';
+diff --git a/src/index.js b/src/index.js
+index 8f373d9..e5af32d 100644
+--- a/src/index.js
++++ b/src/index.js
+@@ -1,7 +1,6 @@
+ import Vue from 'vue';
+ import 'babel-polyfill';
+ import 'indexeddbshim/dist/indexeddbshim';
+-import * as OfflinePluginRuntime from 'offline-plugin/runtime';
+ import './extensions';
+ import './services/optional';
+ import './icons';
+@@ -13,20 +12,6 @@ if (!indexedDB) {
+   throw new Error('Your browser is not supported. Please upgrade to the latest version.');
+ }
+ 
+-OfflinePluginRuntime.install({
+-  onUpdateReady: () => {
+-    // Tells to new SW to take control immediately
+-    OfflinePluginRuntime.applyUpdate();
+-  },
+-  onUpdated: async () => {
+-    if (!store.state.light) {
+-      await localDbSvc.sync();
+-      localStorage.updated = true;
+-      // Reload the webpage to load into the new version
+-      window.location.reload();
+-    }
+-  },
+-});
+ 
+ if (localStorage.updated) {
+   store.dispatch('notification/info', 'StackEdit has just updated itself!');
+diff --git a/src/services/editorSvc.js b/src/services/editorSvc.js
+index c5f034e..ef09564 100644
+--- a/src/services/editorSvc.js
++++ b/src/services/editorSvc.js
+@@ -14,6 +14,9 @@ import editorSvcUtils from './editor/editorSvcUtils';
+ import utils from './utils';
+ import store from '../store';
+ 
++// The host page's origin, read before syncSvc rewrites the query params.
++const { origin: hostOrigin } = utils.queryParams;
++
+ const allowDebounce = (action, wait) => {
+   let timeoutId;
+   return (doDebounce = false, ...params) => {
+@@ -377,6 +380,12 @@ const editorSvc = Object.assign(new Vue(), editorSvcDiscussions, editorSvcUtils,
+       return true;
+     });
+     this.pagedownEditor.hooks.set('insertImageDialog', (callback) => {
++      // Embedded in a host page: the host owns the photo library, so it is
++      // asked to pick one and answers with an insertText message.
++      if (store.state.light && hostOrigin) {
++        window.parent.postMessage({ type: 'pickImage' }, hostOrigin);
++        return true;
++      }
+       store.dispatch('modal/open', {
+         type: 'image',
+         callback,
+diff --git a/src/services/networkSvc.js b/src/services/networkSvc.js
+index 06f24b3..6c8a0d3 100644
+--- a/src/services/networkSvc.js
++++ b/src/services/networkSvc.js
+@@ -63,26 +63,14 @@ export default {
+         && this.isUserActive()
+       ) {
+         store.commit('updateLastOfflineCheck');
+-        const script = document.createElement('script');
+-        let timeout;
++        // The probe goes to the site hosting this build, not to Google: the
++        // only network that matters here is the one to the host, and no
++        // third party needs to learn that the editor was opened.
+         try {
+-          await new Promise((resolve, reject) => {
+-            script.onload = resolve;
+-            script.onerror = reject;
+-            script.src = `https://apis.google.com/js/api.js?${Date.now()}`;
+-            try {
+-              document.head.appendChild(script); // This can fail with bad network
+-              timeout = setTimeout(reject, networkTimeout);
+-            } catch (e) {
+-              reject(e);
+-            }
+-          });
+-          isConnectionDown = false;
++          const res = await fetch(`conf.json?${Date.now()}`, { cache: 'no-store' });
++          isConnectionDown = !res.ok;
+         } catch (e) {
+           isConnectionDown = true;
+-        } finally {
+-          clearTimeout(timeout);
+-          document.head.removeChild(script);
+         }
+       }
+       const offline = isBrowserOffline || isConnectionDown;
+@@ -110,7 +98,7 @@ export default {
+     if (!store.state.offline && !isConfLoading && !isConfLoaded) {
+       try {
+         isConfLoading = true;
+-        const res = await this.request({ url: 'conf' });
++        const res = await this.request({ url: 'conf.json' });
+         await store.dispatch('data/setServerConf', res.body);
+         isConfLoaded = true;
+       } finally {
+diff --git a/src/services/tempFileSvc.js b/src/services/tempFileSvc.js
+index 76563c4..a15cbc2 100644
+--- a/src/services/tempFileSvc.js
++++ b/src/services/tempFileSvc.js
+@@ -95,5 +95,28 @@ export default {
+     // Watch preview refresh and file name changes
+     editorSvc.$on('previewCtx', onChange);
+     store.watch(() => store.getters['file/current'].name, onChange);
++
++    // Messages from the host page. Only insertText so far: the host's photo
++    // picker answers the pickImage request with the markdown to place at
++    // the caret, which is the one thing a host cannot do from outside.
++    window.addEventListener('message', (event) => {
++      if (event.origin !== origin || event.source !== window.parent) {
++        return;
++      }
++      const data = event.data || {};
++      if (data.type === 'insertText' && data.payload && typeof data.payload.text === 'string') {
++        const { clEditor } = editorSvc;
++        const { selectionStart, selectionEnd } = clEditor.selectionMgr;
++        const start = Math.min(selectionStart, selectionEnd);
++        const end = Math.max(selectionStart, selectionEnd);
++        // A picture wants a line of its own: pad with a newline on whichever
++        // side does not already sit at a line boundary.
++        const content = clEditor.getContent();
++        const before = start > 0 && content[start - 1] !== '\n' ? '\n' : '';
++        const after = end < content.length && content[end] !== '\n' ? '\n' : '';
++        clEditor.replace(start, end, before + data.payload.text + after);
++        clEditor.focus();
++      }
++    });
+   },
+ };
+diff --git a/src/store/layout.js b/src/store/layout.js
+index 5910434..a2ad1ed 100644
+--- a/src/store/layout.js
++++ b/src/store/layout.js
+@@ -41,7 +41,7 @@ function computeStyles(state, getters, layoutSettings = getters['data/layoutSett
+   showEditor: layoutSettings.showEditor,
+   showSidePreview: layoutSettings.showSidePreview && layoutSettings.showEditor,
+   showPreview: layoutSettings.showSidePreview || !layoutSettings.showEditor,
+-  showSideBar: layoutSettings.showSideBar && !state.light,
++  showSideBar: layoutSettings.showSideBar,
+   showExplorer: layoutSettings.showExplorer && !state.light,
+   layoutOverflow: false,
+   hideLocations: state.light,

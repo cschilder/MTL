@@ -765,6 +765,15 @@ final class InlineParser
             return $this->media->render(substr($destination, 10), $alt, $title);
         }
 
+        // The library's own URLs resolve the same way. StackEdit inserts these
+        // (its preview has to be able to show the picture, which the mtl:
+        // scheme cannot), and an author who copies a photo's address from
+        // the library gets the responsive figure and the step↔photo link too.
+        if ($this->media !== null
+            && preg_match('#^/media/(thumb|small|medium|large)/([0-9a-f-]{36})(?:\.[a-z0-9]+)?$#i', $destination, $m) === 1) {
+            return $this->media->render($m[2] . '@' . strtolower($m[1]), $alt, $title);
+        }
+
         if (!Url::isSafe($destination)) {
             return self::escape($alt);
         }

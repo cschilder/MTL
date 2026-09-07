@@ -28,9 +28,11 @@ reisverslag schrijven, en het geheel terugzien op een draaibare wereldbol.
   Strato is er geen Composer en geen build-stap, dus elke afhankelijkheid is
   iets dat ooit stukgaat op een moment dat je er niet bij kunt.
 * **Markdown is de bron.** Verslagen worden als markdown bewaard en
-  server-side gerenderd door een eigen CommonMark 0.31 + GFM-implementatie. De
-  editor voelt als een tekstverwerker maar slaat markdown op, en de
-  broncodeweergave is altijd één klik weg.
+  server-side gerenderd door een eigen CommonMark 0.31 + GFM-implementatie
+  (met één bewuste afwijking: een nieuwe regel is een nieuwe regel). De editor
+  is [StackEdit](https://stackedit.io), als eigen build meegeleverd in
+  `assets/stackedit/` en schermvullend geopend vanaf het formulier — met de
+  fotobibliotheek van de site achter de afbeeldingsknop.
 * **Een wereldbol in WebGL, zonder bibliotheken.** Land uit een
   equirectangulaire maskerafbeelding, kustlijnen als gequantiseerde vectoren,
   routes als great-circle-linten, een dag-en-nachtgrens uit de zonnestand, en
@@ -52,10 +54,11 @@ met wie dan ook behalve deze site.
 
 ## In beeld
 
-De editor: opmaak op het scherm, markdown in de database. De broncodeweergave
-en de voorvertoning zitten achter de knoppen rechtsboven in de werkbalk.
+De editor: StackEdit, schermvullend over het stopformulier, met markdown
+links en de voorvertoning rechts. Wat hier wordt getypt staat meteen in het
+formulier; het vinkje linksboven sluit, Opslaan bewaart.
 
-![De editor met een reisverslag: koppen, opsomming, tabel en citaat, met de werkbalk erboven en de stopgegevens ernaast.](docs/screenshots/editor.png)
+![StackEdit geopend over het stopformulier: het verslag in markdown met de opgemaakte voorvertoning ernaast.](docs/screenshots/editor.png)
 
 Hetzelfde verslag, gepubliceerd — met plaats, datum, hoogte, temperatuur en
 waardering uit de stopgegevens:
@@ -197,17 +200,16 @@ De uitvoer wordt gecommit, want op de server is er geen build-stap.
 ### En er zijn browsertests
 
 De fouten die deze applicatie werkelijk had, waren met PHP-tests geen van alle
-te vinden: een editor die elk commando twee keer uitvoerde, waardoor cursief
-zichzelf meteen weer uitzette. Een tabel die bij het opslaan tot platte tekst
-werd. Een werkbalk die de eerste regel van het verslag bedekte. Daarvoor is
+te vinden: een kop die in StackEdit was toegevoegd en bij het opslaan weer
+verdween. Een foto die boven een kop belandde in plaats van bij de cursor.
+Een werkbalk die de eerste regel van het verslag bedekte. Daarvoor is
 `tests/browser/`:
 
 ```bash
 php bin/console.php serve &
 cd tests/browser && npm install
 
-npm run roundtrip   # markdown -> HTML -> markdown, 48 gevallen, byte voor byte
-npm run editor      # typen, opmaken, sneltoetsen, opslaan, herladen
+npm run editor      # StackEdit openen, typen, foto bij de cursor, sluiten, opslaan, herladen
 npm run pages       # elke pagina op vier schermbreedtes
 npm run all
 ```
