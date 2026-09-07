@@ -319,7 +319,7 @@ index bf4019f..21fa4ea 100644
        return panelNames[result] ? result : 'menu';
      },
 diff --git a/src/components/menus/MainMenu.vue b/src/components/menus/MainMenu.vue
-index 85f2260..69d6829 100644
+index 85f2260..ea62f34 100644
 --- a/src/components/menus/MainMenu.vue
 +++ b/src/components/menus/MainMenu.vue
 @@ -1,6 +1,6 @@
@@ -330,7 +330,7 @@ index 85f2260..69d6829 100644
        <div class="menu-entry menu-entry--info flex flex--row flex--align-center" v-if="loginToken">
          <div class="menu-entry__icon menu-entry__icon--image">
            <user-image :user-id="userId"></user-image>
-@@ -34,23 +34,23 @@
+@@ -34,27 +34,32 @@
          <span><b>{{currentWorkspace.name}}</b> not synced.</span>
        </div>
      </div>
@@ -358,7 +358,16 @@ index 85f2260..69d6829 100644
        <icon-upload slot="icon"></icon-upload>
        <div><div class="menu-entry__label menu-entry__label--count" v-if="publishLocationCount">{{publishLocationCount}}</div>Publish</div>
        <span>Export your files to the web.</span>
-@@ -84,12 +84,12 @@
+     </menu-entry>
++    <menu-entry v-if="light" @click.native="insertPhoto">
++      <icon-file-image slot="icon"></icon-file-image>
++      <div>Insert photo</div>
++      <span>Pick a picture from the site's photo library.</span>
++    </menu-entry>
+     <menu-entry @click.native="setPanel('history')">
+       <icon-history slot="icon"></icon-history>
+       <div>History</div>
+@@ -84,12 +89,12 @@
        Print
      </menu-entry>
      <hr>
@@ -373,7 +382,7 @@ index 85f2260..69d6829 100644
        <icon-key slot="icon"></icon-key>
        <div><div class="menu-entry__label menu-entry__label--count">{{accountCount}}</div> Accounts</div>
        <span>Manage access to your external accounts.</span>
-@@ -105,11 +105,11 @@
+@@ -105,11 +110,11 @@
        <span>Tweak application and keyboard shortcuts.</span>
      </menu-entry>
      <hr>
@@ -387,7 +396,7 @@ index 85f2260..69d6829 100644
        <icon-logout slot="icon"></icon-logout>
        Reset application
      </menu-entry>
-@@ -121,7 +121,7 @@
+@@ -121,7 +126,7 @@
  </template>
  
  <script>
@@ -396,7 +405,15 @@ index 85f2260..69d6829 100644
  import MenuEntry from './common/MenuEntry';
  import providerRegistry from '../../services/providers/common/providerRegistry';
  import UserImage from '../UserImage';
-@@ -136,6 +136,9 @@ export default {
+@@ -129,6 +134,7 @@ import googleHelper from '../../services/providers/helpers/googleHelper';
+ import syncSvc from '../../services/syncSvc';
+ import userSvc from '../../services/userSvc';
+ import store from '../../store';
++import editorSvc from '../../services/editorSvc';
+ 
+ export default {
+   components: {
+@@ -136,6 +142,9 @@ export default {
      UserImage,
    },
    computed: {
@@ -406,6 +423,49 @@ index 85f2260..69d6829 100644
      ...mapGetters('workspace', [
        'currentWorkspace',
        'syncToken',
+@@ -172,9 +181,17 @@ export default {
+     },
+   },
+   methods: {
++    ...mapActions('data', [
++      'toggleSideBar',
++    ]),
+     ...mapActions('data', {
+       setPanel: 'setSideBarPanel',
+     }),
++    insertPhoto() {
++      // The same path as the toolbar button: the host page's photo picker.
++      this.toggleSideBar(false);
++      editorSvc.pagedownEditor.uiManager.doClick('image');
++    },
+     async signin() {
+       try {
+         await googleHelper.signin();
+diff --git a/src/data/pagedownButtons.js b/src/data/pagedownButtons.js
+index cf5dc89..4f30353 100644
+--- a/src/data/pagedownButtons.js
++++ b/src/data/pagedownButtons.js
+@@ -1,4 +1,11 @@
+ export default [{
++  // First, so it is within reach on a phone, where the strip is wider than
++  // the screen and the last buttons drop off the edge. Pictures are what a
++  // travel report is made of.
++  method: 'image',
++  title: 'Image',
++  icon: 'file-image',
++}, {
+ }, {
+   method: 'bold',
+   title: 'Bold',
+@@ -45,8 +52,4 @@ export default [{
+   method: 'link',
+   title: 'Link',
+   icon: 'link-variant',
+-}, {
+-  method: 'image',
+-  title: 'Image',
+-  icon: 'file-image',
+ }];
 diff --git a/src/extensions/index.js b/src/extensions/index.js
 index 347b396..8cf9553 100644
 --- a/src/extensions/index.js

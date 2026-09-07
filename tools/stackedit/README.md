@@ -14,6 +14,9 @@ same-origin iframe (`assets/js/editor/index.js`) and talks to it over the
   account (sign-in, workspaces, synchronize, publish, accounts, badges) and
   the ones that wipe the local workspace (backups, reset) are hidden, since
   none of them can work — or should — inside another site.
+- **The image button comes first in the toolbar, and the menu has an "Insert
+  photo" entry.** On a phone the toolbar is wider than the screen and its last
+  buttons drop off the edge — which is where the image button used to be.
 - **The image button asks the host for a picture.** Instead of a URL dialog it
   posts `{type: 'pickImage'}` to the host page, which opens MTL's photo
   library and answers with `{type: 'insertText', payload: {text}}`; StackEdit
