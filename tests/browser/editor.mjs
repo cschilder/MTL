@@ -18,7 +18,9 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 
-const errors = watchForErrors(page);
+// The StackEdit scenario opens the real stackedit.io iframe; on a machine
+// without a route to it the load fails, which is not what this suite tests.
+const errors = watchForErrors(page, { ignore: ['stackedit.io'] });
 
 // A confirm() that is auto-dismissed turns a click into a no-op, which is
 // indistinguishable from a handler that does nothing.
@@ -193,6 +195,85 @@ check(
   !/\]\(#/.test(after),
   JSON.stringify((after.match(/\[[^\]]*\]\(#[^)]*\)/g) ?? []).slice(0, 3)),
 );
+
+// ---------------------------------------------------------------------------
+// StackEdit: what comes back over postMessage must survive everything that
+// follows — a mode switch, the preview, a save. The iframe cannot load here
+// (no route to stackedit.io), so the protocol is driven from this side: the
+// same 'fileChange' payload StackEdit posts, handed to the same listener.
+// A heading added in StackEdit vanished on Save once, because the hidden
+// rich surface was serialised over it.
+// ---------------------------------------------------------------------------
+
+await page.goto(`${BASE}/admin/steps/1`, { waitUntil: 'load' });
+await page.waitForTimeout(800);
+
+await page.locator('[data-editor-mode-button="stackedit"]').click();
+await page.waitForTimeout(300);
+
+check(
+  'StackEdit mode opens the overlay and keeps the textarea underneath',
+  (await page.locator('.stackedit-container').count()) === 1
+    && !(await page.locator('[data-editor-source]').evaluate((el) => el.hidden)),
+);
+
+const fromStackedit = `${after.trim()}\n\n## Kop uit StackEdit\n\nEen regel eronder.`;
+
+await page.evaluate((text) => {
+  const editor = document.querySelector('[data-editor]').mtlEditor;
+
+  editor.stackedit.$trigger('fileChange', { content: { text } });
+}, fromStackedit);
+await page.waitForTimeout(100);
+
+// StackEdit's own ✓ posts 'close'; the library's close() is what handles it.
+await page.evaluate(() => document.querySelector('[data-editor]').mtlEditor.stackedit.close());
+await page.waitForTimeout(100);
+
+check(
+  'a StackEdit edit lands in the field',
+  (await markdown()).includes('## Kop uit StackEdit'),
+);
+
+await page.locator('[data-editor-mode-button="preview"]').click();
+await page.waitForTimeout(600);
+
+check(
+  'the edit survives switching to the preview',
+  (await markdown()).includes('## Kop uit StackEdit'),
+);
+
+await page.locator('[data-editor-mode-button="rich"]').click();
+await page.waitForTimeout(800);
+
+check(
+  'the edit survives switching to the rich surface',
+  (await markdown()).includes('## Kop uit StackEdit')
+    && (await surface.innerHTML()).includes('Kop uit StackEdit'),
+);
+
+await page.locator('[data-editor-mode-button="stackedit"]').click();
+await page.waitForTimeout(300);
+await page.evaluate(() => document.querySelector('[data-editor]').mtlEditor.stackedit.close());
+
+await Promise.all([
+  page.waitForNavigation({ waitUntil: 'load' }).catch(() => {}),
+  page.locator('button[type=submit].p-button--positive').click(),
+]);
+await page.waitForTimeout(600);
+
+await page.goto(`${BASE}/admin/steps/1`, { waitUntil: 'load' });
+await page.waitForTimeout(800);
+
+check(
+  'the edit survives a save from StackEdit mode',
+  (await page.locator('[data-editor-field]').inputValue()).includes('## Kop uit StackEdit'),
+);
+
+// Leave the account on the plain editor again, so the other suites are not
+// greeted by an overlay.
+await page.locator('[data-editor-mode-button="rich"]').click();
+await page.waitForTimeout(400);
 
 console.log(`\nconsole errors: ${errors.length > 0 ? errors.slice(0, 5).join('; ') : 'none'}`);
 

@@ -285,7 +285,13 @@ export class MarkdownEditor {
   syncToField() {
     if (!this.field) return;
 
-    const markdown = this.mode === 'source' ? this.source.value : htmlToMarkdown(this.surface);
+    // Only the rich surface holds content the field does not already have.
+    // In the source and StackEdit modes the textarea *is* the field, and in
+    // the preview nothing is edited at all. Serialising the hidden rich
+    // surface in any of those modes handed back whatever it held when it
+    // was last shown — which is how a heading added in StackEdit vanished
+    // the moment the author pressed Save or switched views.
+    const markdown = this.mode === 'rich' ? htmlToMarkdown(this.surface) : this.source.value;
 
     if (markdown !== this.field.value) {
       this.field.value = markdown;
@@ -630,7 +636,10 @@ export class MarkdownEditor {
    * to the library record rather than to one particular file URL.
    */
   insertMedia({ uuid, url, alt = '', caption = '' }) {
-    if (this.mode === 'source') {
+    // Anything but the rich surface takes the markdown form: in StackEdit
+    // mode the surface is hidden and stale, and an image inserted there
+    // would never reach the field.
+    if (this.mode !== 'rich') {
       this.insertAtCursor(`![${alt}](mtl:media/${uuid}${caption ? ` "${caption}"` : ''})`);
       return;
     }
