@@ -320,3 +320,30 @@
     background: color-mix(in srgb, var(--mtl-accent) 6%, transparent);
   }
 }
+
+// -----------------------------------------------------------------------------
+// StackEdit overlay diagnosis
+//
+// When the stackedit.io iframe is blocked (strict tracking protection, an ad
+// blocker), the overlay is an empty white sheet. This note appears on it
+// after a patient wait, so the author learns what happened instead of
+// staring at nothing. Always dark-on-light: it sits on the overlay's own
+// white sheet, which never follows the site theme.
+// -----------------------------------------------------------------------------
+
+.mtl-stackedit-blocked {
+  background: #fff7e6;
+  border: 1px solid #e6c17a;
+  border-radius: var(--mtl-radius);
+  color: #3d3218;
+  font-size: 0.9375rem;
+  inset-block-start: 50%;
+  inset-inline: var(--mtl-space-5);
+  line-height: 1.5;
+  margin-inline: auto;
+  max-inline-size: 34rem;
+  padding: var(--mtl-space-4);
+  position: absolute;
+  text-align: center;
+  transform: translateY(-50%);
+}

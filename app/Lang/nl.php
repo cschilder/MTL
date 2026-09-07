@@ -401,6 +401,7 @@ return [
     'js.editor.image'        => 'Afbeelding invoegen',
     'js.editor.source'       => 'Markdown bewerken',
     'js.editor.stackedit'    => 'Bewerken in StackEdit',
+    'js.editor.stackedit_blocked' => 'StackEdit kon niet laden. Waarschijnlijk blokkeert je browser (strenge trackingbescherming, privévenster of een adblocker) stackedit.io. Sta stackedit.io toe via het schildje in de adresbalk, of sluit dit venster en werk gewoon in de markdown-weergave verder.',
     'js.editor.rich'         => 'Opgemaakt bewerken',
     'js.editor.preview'      => 'Voorbeeld',
     'js.editor.placeholder'  => 'Schrijf je reisverslag…',

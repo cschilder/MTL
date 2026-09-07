@@ -400,6 +400,7 @@ return [
     'js.editor.image'        => 'Insert image',
     'js.editor.source'       => 'Edit markdown',
     'js.editor.stackedit'    => 'Edit in StackEdit',
+    'js.editor.stackedit_blocked' => 'StackEdit could not load. Your browser is probably blocking stackedit.io (strict tracking protection, a private window, or an ad blocker). Allow stackedit.io via the shield icon in the address bar, or close this sheet and keep writing in the markdown view.',
     'js.editor.rich'         => 'Edit formatted',
     'js.editor.preview'      => 'Preview',
     'js.editor.placeholder'  => 'Write your travel report…',

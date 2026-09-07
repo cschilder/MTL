@@ -44,6 +44,7 @@ export class MarkdownEditor {
 
     /** The StackEdit overlay, created on first use. */
     this.stackedit = null;
+    this.stackeditTimer = null;
 
     // When StackEdit is the preferred editor, the overlay opens the moment the
     // author starts editing the report — not on page load, because these forms
@@ -198,12 +199,36 @@ export class MarkdownEditor {
         this.field.dispatchEvent(new Event('input', { bubbles: true }));
         this.markDirty();
       });
+
+      this.stackedit.on('ready', () => {
+        clearTimeout(this.stackeditTimer);
+        document.querySelector('.mtl-stackedit-blocked')?.remove();
+      });
+
+      this.stackedit.on('close', () => clearTimeout(this.stackeditTimer));
     }
 
     this.stackedit.openFile({
       name: document.title || 'MTL',
       content: { text: this.field.value },
     });
+
+    // A browser with strict tracking protection, or an ad blocker, can
+    // refuse the stackedit.io iframe outright. That looks like an empty
+    // white sheet with no explanation — so after a patient wait, the sheet
+    // says what happened and what to do, instead of leaving the author
+    // staring at nothing.
+    clearTimeout(this.stackeditTimer);
+    this.stackeditTimer = setTimeout(() => {
+      const box = document.querySelector('.stackedit-iframe-container');
+
+      if (!box || box.querySelector('.mtl-stackedit-blocked')) return;
+
+      const note = document.createElement('div');
+      note.className = 'mtl-stackedit-blocked';
+      note.textContent = t('js.editor.stackedit_blocked');
+      box.appendChild(note);
+    }, 10000);
   }
 
   /**

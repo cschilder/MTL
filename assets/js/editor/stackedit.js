@@ -11,7 +11,9 @@
  * knowingly.
  *
  * Local changes from upstream: formatted to this codebase's style; the
- * deprecated `styleEl.type` assignment dropped. The protocol is untouched.
+ * deprecated `styleEl.type` assignment dropped; a 'ready' event is emitted
+ * when StackEdit reports in, so the caller can detect a blocked iframe.
+ * The protocol is untouched.
  */
 
 const styleContent = `
@@ -190,6 +192,9 @@ export class Stackedit {
           case 'ready':
             // StackEdit has its own close button
             closeButton.parentNode.removeChild(closeButton);
+            // Local addition: surfaced so the caller can tell a healthy load
+            // from a browser (or extension) that blocked the iframe.
+            this.$trigger('ready');
             break;
           case 'fileChange':
             // Trigger fileChange event
