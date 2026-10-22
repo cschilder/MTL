@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MTL\Http\Controllers\Admin;
 
 use MTL\Core\Migrator;
+use MTL\Support\PhpAdvisory;
 use MTL\Core\Request;
 use MTL\Core\Response;
 use MTL\Http\Controllers\Controller;
@@ -79,6 +80,11 @@ final class DashboardController extends Controller
             'pendingUsers' => $this->auth()->can('user.manage')
                 ? User::query()->where('status', '=', 'pending')->whereNull('deleted_at')->count()
                 : 0,
+
+            // A PHP with a known critical hole is announced the same way. Only
+            // the host can patch it, but only the admin can ask — or switch
+            // the branch in the hosting panel.
+            'phpAdvisory' => $this->auth()->can('maintenance.run') ? PhpAdvisory::check() : null,
         ]);
     }
 }

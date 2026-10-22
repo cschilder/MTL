@@ -52,6 +52,21 @@ $health = $this->get('health', []);
 </div>
 
 <?php // Decisions waiting for the owner, each with its resolving button. ?>
+<?php $phpAdvisory = $this->get('phpAdvisory'); ?>
+<?php if (is_array($phpAdvisory)): ?>
+    <div class="p-notification--negative">
+        <div class="p-notification__content">
+            <h5 class="p-notification__title"><?= e(__('admin.php_vulnerable_title')) ?></h5>
+            <p class="p-notification__message">
+                <?= e($phpAdvisory['fixed'] === null
+                    ? __('admin.php_vulnerable_eol', ['version' => $phpAdvisory['version'], 'branch' => $phpAdvisory['branch'], 'advisory' => $phpAdvisory['advisory']])
+                    : __('admin.php_vulnerable', ['version' => $phpAdvisory['version'], 'fixed' => $phpAdvisory['fixed'], 'advisory' => $phpAdvisory['advisory']])) ?>
+                <?= e(__('admin.php_vulnerable_howto')) ?>
+            </p>
+        </div>
+    </div>
+<?php endif; ?>
+
 <?php if (((int) $this->get('pendingMigrations', 0)) > 0): ?>
     <div class="p-notification--caution">
         <div class="p-notification__content" style="display: flex; align-items: center; gap: var(--mtl-space-3); flex-wrap: wrap;">

@@ -86,7 +86,13 @@ $changed = array_values(array_filter($migrations, static fn (array $m): bool => 
             <h2><?= e(__('maintenance.health')) ?></h2>
 
             <dl style="display: grid; grid-template-columns: auto 1fr; gap: var(--mtl-space-1) var(--mtl-space-3); font-size: 0.875rem;">
-                <dt class="mtl-muted">PHP</dt><dd style="margin: 0;"><?= e((string) ($health['php_version'] ?? '')) ?></dd>
+                <dt class="mtl-muted">PHP</dt>
+                <dd style="margin: 0;">
+                    <?= e((string) ($health['php_version'] ?? '')) ?>
+                    <?php if (is_array($phpAdvisory = MTL\Support\PhpAdvisory::check((string) ($health['php_version'] ?? '')))): ?>
+                        <span class="p-chip--negative is-dense" style="margin: 0 0 0 var(--mtl-space-1);"><span class="p-chip__value"><?= e(__('admin.php_vulnerable_chip')) ?></span></span>
+                    <?php endif; ?>
+                </dd>
                 <dt class="mtl-muted">Database</dt><dd style="margin: 0;"><?= e((string) ($health['database_version'] ?? '')) ?></dd>
                 <dt class="mtl-muted"><?= e(__('user.users')) ?></dt><dd style="margin: 0;"><?= e((string) ($health['users'] ?? 0)) ?></dd>
                 <dt class="mtl-muted"><?= e(__('trip.trips')) ?></dt><dd style="margin: 0;"><?= e((string) ($health['trips'] ?? 0)) ?></dd>
